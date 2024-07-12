@@ -1,22 +1,25 @@
-"use strict"
+// "use strict"
 
-//imports
-var express = require("express");
-var  application = express();
-var routes = require("./routes");
+// //imports
+const express = require("express");
+const  application = express();
+const routes = require("./routes");
+const dotenv = require("dotenv")
+const mongoose = require("mongoose")
 
 
 var jsonParser = require("body-parser").json  //has multiple parse to manage http request
 var logger = require("morgan");
 
+dotenv.config();
 
-//port number
-var port = process.env.PORT || 3000
+const port = process.env.PORT || 5000;
+const MONGOURL = process.env.MONGO_URL;
 
-application.use(logger("dev"));
-application.use(jsonParser());
+application.use(express.json());
 
 //handling routes
+// application.use("/",routes)
 application.use("/questions", routes);
 
 
@@ -37,6 +40,53 @@ application.use((error, request, response, next) => {
     })
 })
 
-application.listen(port, () => {
-    console.log(`Express server is listening on port ${port}`)
-})
+// const Schema = mongoose.Schema;
+// const AnimalSchema = new Schema({
+//             type: String,
+//             size: String,
+//             color: String,
+//             mass: Number,
+//             name: String
+//         });
+
+//  const AnimalModel = mongoose.model("animal", AnimalSchema);
+
+//  var lion = new AnimalModel({
+//     type: "lion",
+//     size: "huge",
+//     color: "gold",
+//     mass: "5000",
+//     name: "Princess"
+//  });
+
+
+ 
+
+async function connectWithRetry() {
+    try{
+
+        //connecting to mongo db database
+        const databaseConnected = await mongoose.connect(MONGOURL);
+
+
+        //verifying the database is connected
+        if(databaseConnected){
+            // require("./collection")
+            application.listen(port, () => {
+                console.log(`database has been connected and server is running on port ${port}`)
+            });
+
+        } else {
+            console.log('Database connection  failed');
+            setInterval(connectWithRetry, 5000)
+        }
+    } catch(error){
+       console.log(`Database connection error: ${error}`)
+       setInterval(connectWithRetry, 5000) ;    
+    }
+}
+
+connectWithRetry()
+
+
+
