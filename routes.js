@@ -106,32 +106,137 @@ router.post("/:qID/answers", async (request, response) => {
 
 //PUT /questions/:qID/answers/:aID
 //Edit a specific answer
-// router.put("/:qID/answers/:aID", (request, response) => {
-//   request.answer.update(require.body, (err, result) => {
-//     if(err){
-//       return next(err);
-//     } else {
-//       response.json(result);
-//     }
-//   });
-// });
+
+router.put("/:qID/answers/:aID", async (request, response) => {
+  try {
+    const { qID, aID } = request.params;
+    const { text } = request.body;
+
+    //Verify valid object Id formats( optional but recommended for security)
+    if (
+      !mongoose.Types.ObjectId.isValid(qID) ||
+      !mongoose.Types.ObjectId.isValid(aID)
+    ) {
+      return response
+        .status(400)
+        .json({ message: "Invalid question or answer ID Found" });
+    }
+
+    const question = await Question.findById(qID);
+
+    if (!question) {
+      return response.status(404).json({ message: "Question not Found" });
+    }
+
+    const answerIndex = question.answers.findIndex(
+      (answer) => answer._id.toString() === aID
+    );
+
+    if (answerIndex === -1) {
+      return response.status(404).json({ message: "Answer Not Found" });
+    }
+
+    //Update answer content(ensure allowed fields are updated)
+    question.answers[answerIndex].text = text; // Update only answerText
+
+    await question.save(); // Save updated question with modified answer
+
+    response.status(200).json({ message: "Answer updated successfully", });
+  } catch (err) {
+    response
+      .status(500)
+      .json({ message: "Error editing answer", error: err.message });
+  }
+});
 
 //DELETE /questions/:qID/answers/:aID
 //Delete a specific answer
-// router.delete("/:qID/answers/:aID", (request, response) => {
-//    request.answer.remove((err, question) => {
-//      if(err){
-//       return next(err);
-//      } else{
-//       response.json(question);
-//      }
-//    })
+router.delete("/:qID/answers/:aID", async(request , response) => {
+  try{
+    const { qID, aID } = request.params;
 
-// });
+    if(!mongoose.Types.ObjectId.isValid(qID) || !mongoose.Types.ObjectId.isValid(aID)){
+      return response.status(400).json({ message: "Invalid question or answer ID"});
+    }
+
+     const question = await Question.findById(qID);
+
+     if(!question){
+      return response.status(404).json({ message: 'Question not Found'});
+     }
+
+     
+    const answerIndex = question.answers.findIndex(answer => answer._id.toString()  === aID);
+
+    if(answerIndex === -1) {
+      return response.status(404).json({ message: 'Answer Not Found'});
+    }
+
+    //Remove answer reference from question
+
+    question.answers.splice(answerIndex, 1);
+
+    await question.save();  // Save updated question with removed answer
+
+    response.status(200).json({ message: 'Answer deleted successfully'});
+
+  }catch(err){
+  return  response.status(500).json({ message: "Error Deleting the answer", error: err.message});
+  }
+})
 
 //POST /questions/:qID/answers/aID/vote-up
 //POST /questions/:qID/answers/aID/vote-down
 //Vote for  a specific answer
+router.post("/:qID/answers/:aID/vote-:dir", async (request, response) => {
+  try{
+   
+    
+
+     const { qID, aID } = request.params;
+     const { vote } = request.params.dir;
+     
+     if(!mongoose.Types.ObjectId.isValid(qID) || !mongoose.Types.ObjectId.isValid(aID)){
+       return response.status(400).json({message: "Invalid question or answer Id"});
+     }
+
+      const question = await Question.findById(qID).populate('answers');
+
+      if(!question){
+        return response.status(404).json({message: 'Question Not Found'})
+      }
+
+      const answer = question.answers.find(answer => answer._id.toString() === aID);
+
+      if(!answer){
+        return response.status(404).json({message: 'Answer not found'});
+      }
+
+      // Validate vote: Ensure vote is either "up" or "down"
+      if(request.params.dir.search(/^(up|down)$/) === -1) {
+        return response.status(404).json({ message: 'Invalid input value (up or down only)'});
+      }
+
+      // Update vote based on type:
+    if (vote === 'up') {
+      answer.votes++;
+    } else { // vote === 'down'
+      answer.votes--;
+    }
+
+    await question.save(); // Save updated question with modified answer
+
+    response.status(200).json({ message: `Successfully voted ${vote} on the answer` });
+  }  catch(err){
+    return response.status(500).json({message: 'Error voting for answer', error: err.message});
+  }
+})
+
+
+
+
+
+
 // router.post("/:qID/answers/:aID/vote-:dir", function(request , response, next) {
 //     if(request.params.dir.search(/^(up|down)$/) === -1) {
 //         var err = new Error("Not Found");
