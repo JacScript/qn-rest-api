@@ -1,4 +1,4 @@
-// "use strict"
+ "use strict"
 
 // //imports
 const express = require("express");
@@ -17,6 +17,7 @@ const port = process.env.PORT || 5000;
 const MONGOURL = process.env.MONGO_URL;
 
 application.use(express.json());
+// application.use(jsonParser.json()); // Parse incoming JSON data
 
 //handling routes
 // application.use("/",routes)
