@@ -8,6 +8,16 @@ const Question = require("./models/qnModel.js");
 const Answer = require("./models/ansModel.js");
 
 
+
+// Route to get all questions (with populated answers)
+router.get('/', async (request, response) => {
+  try {
+    const questions = await Question.find().populate('answer');
+    response.json(questions);
+  }catch (err) {
+    response.status(500).json({ message: 'Error creating question', error: err.message });
+  }
+});
 //POST /questions
 //Route for creating questions
 router.post("/", async (request, response, next) => {
