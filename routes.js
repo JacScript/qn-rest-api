@@ -5,17 +5,18 @@
 const express = require("express");
 const router = express.Router();
 const Question = require("./models/qnModel.js");
+const { mongoose } = require("mongoose");
 const Answer = require("./models/ansModel.js");
 
-
-
 // Route to get all questions (with populated answers)
-router.get('/', async (request, response) => {
+router.get("/", async (request, response) => {
   try {
-    const questions = await Question.find().populate('answer');
+    const questions = await Question.find().populate("answers");
     response.json(questions);
-  }catch (err) {
-    response.status(500).json({ message: 'Error creating question', error: err.message });
+  } catch (err) {
+    response
+      .status(500)
+      .json({ message: "Error creating question", error: err.message });
   }
 });
 //POST /questions
@@ -23,33 +24,85 @@ router.get('/', async (request, response) => {
 router.post("/", async (request, response, next) => {
   try {
     const { questionText, answer } = request.body;
-    const newQuestion = new Question ({ questionText, answer});
+    const newQuestion = new Question({ questionText, answer });
     await newQuestion.save();
-    response.status(201).json({ message: 'Question created successfully', question: newQuestion });
+
+    // Sort logic: Replace this with your actual sorting criteria
+    const questions = await Question.find(); // Fetch existing questions
+    questions.push(newQuestion); // Add new question to the array
+    questions.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)); // Sort by creation time (descending)
+
+    // Save all questions (including the new one)
+    await Promise.all(questions.map((question) => question.save()));
+    response
+      .status(201)
+      .json({
+        message: "Question created and sorted successfully",
+        question: newQuestion,
+      });
   } catch (err) {
-    response.status(500).json({ message: 'Error creating question', error: err.message });
+    response
+      .status(500)
+      .json({ message: "Error creating question", error: err.message });
   }
 });
 
-//GET /questions/:qID
-//Route for specific questions
-router.get("/:qID", (request, response) => {
-  response.json(request.question);
+// Route to get a specific question by ID
+router.get("/:qID", async (request, response) => {
+  try {
+    const { qID } = request.params;
+
+    // Verify valid object ID format (optional, but recommended for security)
+    if (!mongoose.Types.ObjectId.isValid(qID)) {
+      return response.status(400).json({ message: "Invalid question ID" });
+    }
+
+    const question = await Question.findById(qID);
+
+    if (!question) {
+      return response.status(404).json({ message: "Question not found" });
+    }
+    response
+      .status(201)
+      .json({ message: "Question Found", question: question });
+  } catch (err) {
+    response
+      .status(500)
+      .json({ message: "Error fetching question", error: err.message });
+  }
 });
 
 //GET /questions/:qID/answer
 //Route for creating  an answer
-// router.post("/:qID/answers", (request, response, next) => {
-//    request.question.answers.push(request.body);
-//    request.question.save((err, question) => {
-//     if(err){
-//       return next(err);
-//     } else {
-//       response.status(201);
-//       response.json(question);
-//     }
-//    })
-// });
+router.post("/:qID/answers", async (request, response) => {
+  try {
+    const { qID } = request.params;//Etract the question Id from params
+    const { text } = request.body; //Extrect the answer text from the request body
+
+    //Verify valid object ID format(optional, but recommended for security)
+    if (!mongoose.Types.ObjectId.isValid(qID)) {
+      return response.status(400).json({ message: "Invalid question ID" });
+    }
+
+    const question = await Question.findById(qID);
+
+    if (!question) {
+      return response.status(404).json({ message: "Question Not Found" });
+    }
+
+    const newAnswer = new Answer({ text }); //Create new answer object
+    question.answers.push(newAnswer); //Add answer reference to question
+
+    await Promise.all([question.save(), newAnswer.save()]); //Save both question and answer
+    response
+      .status(201)
+      .json({ message: "Answer created successfully", Answer: newAnswer });
+  } catch (error) {
+    response
+      .status(500)
+      .json({ message: "Error creating answer", error: error.message });
+  }
+});
 
 //PUT /questions/:qID/answers/:aID
 //Edit a specific answer

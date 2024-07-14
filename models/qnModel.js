@@ -8,7 +8,7 @@ const schema = new Schema({
   },
 
   //(references the Answer model)
-  answer:[{
+  answers:[{
     type: Schema.Types.ObjectId,
     ref: "Answer",
     required: true,
