@@ -6,8 +6,13 @@ const schema = new Schema(
       type: String,
       required: true,
     },
-    upvotes: { type: Number, default: 0 },
-    downvotes: { type: Number, default: 0 },
+    upvotes: {
+      type: Number, 
+      default: 0 
+    },
+    downvotes: {
+      type: Number,
+      default: 0},
   },
   { timestamps: true }
 );

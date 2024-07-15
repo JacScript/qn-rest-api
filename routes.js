@@ -74,10 +74,9 @@ router.get("/:qID", async (request, response) => {
 
 //GET /questions/:qID/answer
 //Route for creating  an answer
-router.post("/:qID/answers", async (request, response) => {
+router.post("/answer", async (request, response) => {
   try {
-    const { qID } = request.params;//Etract the question Id from params
-    const { text } = request.body; //Extrect the answer text from the request body
+    const { qID , text } = request.body;//Etract the question Id &  the answer text from the request body
 
     //Verify valid object ID format(optional, but recommended for security)
     if (!mongoose.Types.ObjectId.isValid(qID)) {
@@ -119,11 +118,9 @@ router.post("/:qID/answers", async (request, response) => {
 
 //PUT /questions/:qID/answers/:aID
 //Edit a specific answer
-
-router.put("/:qID/answers/:aID", async (request, response) => {
+router.put("/answer", async (request, response) => {
   try {
-    const { qID, aID } = request.params;
-    const { text } = request.body;
+    const { qID, aID , text } = request.body;
 
     //Verify valid object Id formats( optional but recommended for security)
     if (
@@ -162,11 +159,11 @@ router.put("/:qID/answers/:aID", async (request, response) => {
   }
 });
 
-//DELETE /questions/:qID/answers/:aID
+//DELETE /questions/answer
 //Delete a specific answer
-router.delete("/:qID/answers/:aID", async(request , response) => {
+router.delete("/answer", async(request , response) => {
   try{
-    const { qID, aID } = request.params;
+    const { qID, aID } = request.body;
 
     if(!mongoose.Types.ObjectId.isValid(qID) || !mongoose.Types.ObjectId.isValid(aID)){
       return response.status(400).json({ message: "Invalid question or answer ID"});
@@ -201,60 +198,50 @@ router.delete("/:qID/answers/:aID", async(request , response) => {
 //POST /questions/:qID/answers/aID/vote-up
 //POST /questions/:qID/answers/aID/vote-down
 //Vote for  a specific answer
-router.post("/:qID/answers/:aID/vote-:dir", async (request, response) => {
+router.put("/answer/vote", async (request, response) => {
   try{
-     const { qID, aID } = request.params;
-     const { vote } = request.params.dir.toLowerCase();
-
-     console.log(`${vote}`)
+     const { qID, aID, vote } = request.body;
      
+     // Verify valid object ID formats (security)
      if(!mongoose.Types.ObjectId.isValid(qID) || !mongoose.Types.ObjectId.isValid(aID)){
        return response.status(400).json({message: "Invalid question or answer Id"});
      }
 
-      const question = await Question.findById(qID).populate('answers');
+       const question = await Question.findById(qID).populate('answers');  
 
       if(!question){
         return response.status(404).json({message: 'Question Not Found'})
       }
 
-      const answer = question.answers.find(answer => answer._id.toString() === aID);
+      const answerIndex = question.answers.find(Answer => Answer._id.toString() === aID);
 
-      if(!answer){
+      if(!answerIndex){
         return response.status(404).json({message: 'Answer not found'});
       }
 
       // Validate vote: Ensure vote is either "up" or "down"
-      if(request.params.dir.search(/^(up|down)$/) === -1) {
-        return response.status(404).json({ message: 'Invalid input value (up or down only)'});
-      }
+    if (vote !== 'up' && vote !== 'down') {
+      return response.status(400).json({ message: 'Invalid vote type (up or down only)' });
+    }
 
-      // Update vote based on type:
+    //Update vote based on type:
     if (vote === 'up') {
-      answer.votes += 1;
+        answerIndex.upvotes++;
     } else { // vote === 'down'
-      answer.votes -= 1;
-    }   
-
-    //  // Update vote count based on direction
-    //  answer[vote + 'votes']++; // Use bracket notation for dynamic property access
+         answerIndex.downvotes++;
+    }
 
     await question.save(); // Save updated question with modified answer
 
     // Fetch the updated question with populated answers for sorting
     const updatedQuestion = await Question.findById(qID).populate('answers');
 
-    // Sort answers by the sum of upvotes and downvotes in descending order (most voted at the top)
-    updatedQuestion.answers.sort((a, b) => {
-      if(a.votes === b.votes) {
-        return b.updatedAt - a.updatedAt;
-      }
-    });
+   // Sort answers by the sum of upvotes and downvotes in descending order (most voted at the top)
+   updatedQuestion.answers.sort((a, b) => (b.upvotes - b.downvotes) - (a.upvotes - a.downvotes));
 
     response.status(200).json({
       message: `Successfully voted ${vote} on the answer`,
       question: updatedQuestion,
-      // sortedAnswers: updatedQuestion.answers
       });
   }  catch(err){
     return response.status(500).json({message: 'Error voting for answer', error: err.message});
