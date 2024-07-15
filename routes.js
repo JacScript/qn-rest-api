@@ -90,13 +90,26 @@ router.post("/:qID/answers", async (request, response) => {
       return response.status(404).json({ message: "Question Not Found" });
     }
 
-    const newAnswer = new Answer({ text }); //Create new answer object
-    question.answers.push(newAnswer); //Add answer reference to question
 
-    await Promise.all([question.save(), newAnswer.save()]); //Save both question and answer
-    response
-      .status(201)
-      .json({ message: "Answer created successfully", Answer: newAnswer });
+      const newAnswer = new Answer({ text });  //Create new answer object
+    question.answers.push(newAnswer._id); // Add answer reference to question
+
+    await Promise.all([question.save(), newAnswer.save()]);
+
+    const updatedQuestion = await Question.findById(qID).populate('answers'); // Populate answers
+
+    // Sort answers by upvotes (descending) and downvotes (ascending) for a more balanced ranking
+    updatedQuestion.answers.sort((a, b) => {
+       if(a.votes === b.votes){
+        return b.updatedAt - a.updatedAt
+       }
+    });
+
+    response.status(201).json({
+      message: 'Answer created successfully',
+      answer: newAnswer,
+      sortedAnswers: updatedQuestion.answers,
+    });
   } catch (error) {
     response
       .status(500)
@@ -190,11 +203,10 @@ router.delete("/:qID/answers/:aID", async(request , response) => {
 //Vote for  a specific answer
 router.post("/:qID/answers/:aID/vote-:dir", async (request, response) => {
   try{
-   
-    
-
      const { qID, aID } = request.params;
-     const { vote } = request.params.dir;
+     const { vote } = request.params.dir.toLowerCase();
+
+     console.log(`${vote}`)
      
      if(!mongoose.Types.ObjectId.isValid(qID) || !mongoose.Types.ObjectId.isValid(aID)){
        return response.status(400).json({message: "Invalid question or answer Id"});
@@ -219,41 +231,34 @@ router.post("/:qID/answers/:aID/vote-:dir", async (request, response) => {
 
       // Update vote based on type:
     if (vote === 'up') {
-      answer.votes++;
+      answer.votes += 1;
     } else { // vote === 'down'
-      answer.votes--;
-    }
+      answer.votes -= 1;
+    }   
+
+    //  // Update vote count based on direction
+    //  answer[vote + 'votes']++; // Use bracket notation for dynamic property access
 
     await question.save(); // Save updated question with modified answer
 
-    response.status(200).json({ message: `Successfully voted ${vote} on the answer` });
+    // Fetch the updated question with populated answers for sorting
+    const updatedQuestion = await Question.findById(qID).populate('answers');
+
+    // Sort answers by the sum of upvotes and downvotes in descending order (most voted at the top)
+    updatedQuestion.answers.sort((a, b) => {
+      if(a.votes === b.votes) {
+        return b.updatedAt - a.updatedAt;
+      }
+    });
+
+    response.status(200).json({
+      message: `Successfully voted ${vote} on the answer`,
+      question: updatedQuestion,
+      // sortedAnswers: updatedQuestion.answers
+      });
   }  catch(err){
     return response.status(500).json({message: 'Error voting for answer', error: err.message});
   }
-})
-
-
-
-
-
-
-// router.post("/:qID/answers/:aID/vote-:dir", function(request , response, next) {
-//     if(request.params.dir.search(/^(up|down)$/) === -1) {
-//         var err = new Error("Not Found");
-//         err.status = 404;
-//         next(err);
-//     } else {
-//         request.vote = request.params.dir;
-//         next();
-//     }
-// } ,(request, response) => {
-//     request.answer.vote(request.vote, (err, question) => {
-//       if(err) {
-//         return next(err);
-//       } else {
-//         response.json(question);
-//       }
-//     })
-// })
+});
 
 module.exports = router;

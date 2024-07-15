@@ -1,5 +1,4 @@
 const { Schema, model } = require('mongoose');
-// const Answer = require("./ansModel.js")
 
 const schema = new Schema({
   questionText: {
