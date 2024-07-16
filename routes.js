@@ -231,6 +231,7 @@ router.put("/answer/vote", async (request, response) => {
          answerIndex.downvotes++;
     }
 
+    await answerIndex.save();
     await question.save(); // Save updated question with modified answer
 
     // Fetch the updated question with populated answers for sorting
