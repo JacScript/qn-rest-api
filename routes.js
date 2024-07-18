@@ -6,6 +6,8 @@ const express = require("express");
 const router = express.Router();
 const { mongoose } = require("mongoose");
 const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+
 
  
 
@@ -276,24 +278,6 @@ router.put("/questions/answer/vote", async (request, response) => {
 });
 
 
-router.post('/login', async (request,response) => {
-    const {email, password} = request.body;
-    
-
-    try{
-
-      const check = await User.findOne({email: email});
-
-      if(check){
-        response.json({message: 'Exist'})
-      } else {
-        response.json({message: 'Not - Exist'})
-      }
-
-    } catch(err) {
-      return response.status(500).json({message: 'Error voting for answer', error: err.message});
-    }
-})
 
 router.post('/auth/signup', async (request,response) => {
   const {username, email, password} = request.body;
@@ -319,6 +303,32 @@ router.post('/auth/signup', async (request,response) => {
    return response.json({ status: true , message: "Record registed"})
   } catch(err) {
     return response.status(500).json({message: 'Fail to register user', error: err.message});
+  }
+});
+
+router.post("/auth/login", async (response, request) => {
+  const {email, password } = request.body;
+
+  try{
+
+    const user = await User.findOne({email});
+
+    if(!user){
+      return response.status(404).json({message: 'User is not registered'})
+    }
+
+    const validPassword = await bcrypt.compare(password, user.password);
+
+    if(!validPassword){
+      return response.json({message: 'password incorrect'});
+    }
+
+    const  token = jwt.sign({username: user.name}, process.env.KEY, {expiresIn: '1h'});
+    await response.cookies('token', token, {maxAge: 360000});
+    return response.json({status: true , message: "Login Succesffuly"})
+
+  }catch(err){
+    return response.status("500").json({message: 'Fail to Login In' , error : err.message})
   }
 })
 
