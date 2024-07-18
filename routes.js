@@ -324,7 +324,7 @@ router.post("/auth/login", async (response, request) => {
     }
 
     const  token = jwt.sign({username: user.name}, process.env.KEY, {expiresIn: '1h'});
-    await response.cookies('token', token, {maxAge: 360000});
+    response.cookies('token', token, {maxAge: 360000});
     return response.json({status: true , message: "Login Succesffuly"})
 
   }catch(err){
