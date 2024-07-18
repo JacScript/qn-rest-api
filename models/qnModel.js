@@ -14,6 +14,7 @@ const schema = new Schema({
   }],
 }, {timestamps: true});
 
+
 // schema timestamps indexing
 schema.index({ createdAt: -1 }, { background: true })
 schema.index({ updatedAt: -1 }, { background: true })

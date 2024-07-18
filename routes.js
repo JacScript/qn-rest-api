@@ -5,7 +5,7 @@
 const express = require("express");
 const router = express.Router();
 const { mongoose } = require("mongoose");
-const cors = require('cors');
+const bcrypt = require('bcrypt');
 
  
 
@@ -27,12 +27,16 @@ router.get("/questions", async (request, response) => {
       .json({ message: "Error creating question", error: err.message });
   }
 });
+
+
+
+
 //POST /questions
 //Route for creating questions
 router.post("/questions", async (request, response, next) => {
   try {
-    const { questionText, answer } = request.body;
-    const newQuestion = new Question({ questionText, answer });
+    const { questionText } = request.body;
+    const newQuestion = new Question({ questionText });
     await newQuestion.save();
 
     // Sort logic: Replace this with your actual sorting criteria
@@ -54,6 +58,9 @@ router.post("/questions", async (request, response, next) => {
       .json({ message: "Error creating question", error: err.message });
   }
 });
+
+
+
 
 // Route to get a specific question by ID
 router.get("/questions/:qID", async (request, response) => {
@@ -79,6 +86,9 @@ router.get("/questions/:qID", async (request, response) => {
       .json({ message: "Error fetching question", error: err.message });
   }
 });
+
+
+
 
 //GET /questions/:qID/answer
 //Route for creating  an answer
@@ -124,6 +134,9 @@ router.post("/questions/answer", async (request, response) => {
   }
 });
 
+
+
+
 //PUT /questions/:qID/answers/:aID
 //Edit a specific answer
 router.put("/questions/answer", async (request, response) => {
@@ -167,6 +180,9 @@ router.put("/questions/answer", async (request, response) => {
   }
 });
 
+
+
+
 //DELETE /questions/answer
 //Delete a specific answer
 router.delete("/questions/answer", async(request , response) => {
@@ -201,7 +217,9 @@ router.delete("/questions/answer", async(request , response) => {
   }catch(err){
   return  response.status(500).json({ message: "Error Deleting the answer", error: err.message});
   }
-})
+});
+
+
 
 //POST /questions/:qID/answers/aID/vote-up
 //POST /questions/:qID/answers/aID/vote-down
@@ -258,7 +276,7 @@ router.put("/questions/answer/vote", async (request, response) => {
 });
 
 
-router.post('/login', cors(), async (request,response) => {
+router.post('/login', async (request,response) => {
     const {email, password} = request.body;
     
 
@@ -277,28 +295,30 @@ router.post('/login', cors(), async (request,response) => {
     }
 })
 
-router.post('/sign', cors(), async (request,response) => {
-  const {email, password} = request.body;
-
-  const data = {
-    email: email,
-    password: password 
-  }
+router.post('/auth/signup', async (request,response) => {
+  const {username, email, password} = request.body;
   
 
   try{
 
-    const check = await User.findOne({email: email});
+    const user = await User.findOne({email});
 
-    if(check){
-      response.json({message: 'Exist'})
-    } else {
-      response.json({message: 'Not - Exist'});
-      await User.insertMany([data])
-    }
+   if(user) {
+    return response.json({message: "User Already existed"})
+   }
 
+   const hashpassword = await bcrypt.hash(password, 10);
+   const newUser =new User({
+    username,
+    email,
+    password: hashpassword
+   })
+
+
+   await newUser.save();
+   return response.json({ status: true , message: "Record registed"})
   } catch(err) {
-    return response.status(500).json({message: 'Error voting for answer', error: err.message});
+    return response.status(500).json({message: 'Fail to register user', error: err.message});
   }
 })
 
