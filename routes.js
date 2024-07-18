@@ -1,15 +1,23 @@
 "use strict";
 
 // import
-// import express from "express"
+// import dependences
 const express = require("express");
 const router = express.Router();
-const Question = require("./models/qnModel.js");
 const { mongoose } = require("mongoose");
+const cors = require('cors');
+
+ 
+
+
+//import files
+
+const Question = require("./models/qnModel.js");
 const Answer = require("./models/ansModel.js");
+const User = require('./models/userModel.js');
 
 // Route to get all questions (with populated answers)
-router.get("/", async (request, response) => {
+router.get("/questions", async (request, response) => {
   try {
     const questions = await Question.find().populate("answers");
     response.json(questions);
@@ -21,7 +29,7 @@ router.get("/", async (request, response) => {
 });
 //POST /questions
 //Route for creating questions
-router.post("/", async (request, response, next) => {
+router.post("/questions", async (request, response, next) => {
   try {
     const { questionText, answer } = request.body;
     const newQuestion = new Question({ questionText, answer });
@@ -48,7 +56,7 @@ router.post("/", async (request, response, next) => {
 });
 
 // Route to get a specific question by ID
-router.get("/:qID", async (request, response) => {
+router.get("/questions/:qID", async (request, response) => {
   try {
     const { qID } = request.params;
 
@@ -74,7 +82,7 @@ router.get("/:qID", async (request, response) => {
 
 //GET /questions/:qID/answer
 //Route for creating  an answer
-router.post("/answer", async (request, response) => {
+router.post("/questions/answer", async (request, response) => {
   try {
     const { qID , text } = request.body;//Etract the question Id &  the answer text from the request body
 
@@ -118,7 +126,7 @@ router.post("/answer", async (request, response) => {
 
 //PUT /questions/:qID/answers/:aID
 //Edit a specific answer
-router.put("/answer", async (request, response) => {
+router.put("/questions/answer", async (request, response) => {
   try {
     const { qID, aID , text } = request.body;
 
@@ -161,7 +169,7 @@ router.put("/answer", async (request, response) => {
 
 //DELETE /questions/answer
 //Delete a specific answer
-router.delete("/answer", async(request , response) => {
+router.delete("/questions/answer", async(request , response) => {
   try{
     const { qID, aID } = request.body;
 
@@ -198,7 +206,7 @@ router.delete("/answer", async(request , response) => {
 //POST /questions/:qID/answers/aID/vote-up
 //POST /questions/:qID/answers/aID/vote-down
 //Vote for  a specific answer
-router.put("/answer/vote", async (request, response) => {
+router.put("/questions/answer/vote", async (request, response) => {
   try{
      const { qID, aID, vote } = request.body;
      
@@ -248,5 +256,51 @@ router.put("/answer/vote", async (request, response) => {
     return response.status(500).json({message: 'Error voting for answer', error: err.message});
   }
 });
+
+
+router.post('/login', cors(), async (request,response) => {
+    const {email, password} = request.body;
+    
+
+    try{
+
+      const check = await User.findOne({email: email});
+
+      if(check){
+        response.json({message: 'Exist'})
+      } else {
+        response.json({message: 'Not - Exist'})
+      }
+
+    } catch(err) {
+      return response.status(500).json({message: 'Error voting for answer', error: err.message});
+    }
+})
+
+router.post('/sign', cors(), async (request,response) => {
+  const {email, password} = request.body;
+
+  const data = {
+    email: email,
+    password: password 
+  }
+  
+
+  try{
+
+    const check = await User.findOne({email: email});
+
+    if(check){
+      response.json({message: 'Exist'})
+    } else {
+      response.json({message: 'Not - Exist'});
+      await User.insertMany([data])
+    }
+
+  } catch(err) {
+    return response.status(500).json({message: 'Error voting for answer', error: err.message});
+  }
+})
+
 
 module.exports = router;

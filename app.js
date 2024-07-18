@@ -5,7 +5,10 @@ const express = require("express");
 const  application = express();
 const routes = require("./routes");
 const dotenv = require("dotenv")
-const mongoose = require("mongoose")
+const mongoose = require("mongoose");
+const cors = require('cors')
+
+
 
 
 var jsonParser = require("body-parser").json  //has multiple parse to manage http request
@@ -17,9 +20,10 @@ const port = process.env.PORT || 5000;
 const MONGOURL = process.env.MONGO_URL;
 
 application.use(express.json());
+application.use(cors( ))
 
 //handling routes
-application.use("/questions", routes);
+application.use("/", routes);
 
 
 //catch 404 and forward to error handleer
