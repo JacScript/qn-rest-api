@@ -7,6 +7,7 @@ const router = express.Router();
 const { mongoose } = require("mongoose");
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+var nodemailer = require('nodemailer');
 
 
  
@@ -306,7 +307,7 @@ router.post('/auth/signup', async (request,response) => {
   }
 });
 
-router.post("/auth/login", async (response, request) => {
+router.post("/auth/login", async (request , response) => {
   const {email, password } = request.body;
 
   try{
@@ -317,18 +318,58 @@ router.post("/auth/login", async (response, request) => {
       return response.status(404).json({message: 'User is not registered'})
     }
 
-    const validPassword = await bcrypt.compare(password, user.password);
+    const validPassword =  bcrypt.compare(password, user.password);
 
     if(!validPassword){
       return response.json({message: 'password incorrect'});
     }
 
     const  token = jwt.sign({username: user.name}, process.env.KEY, {expiresIn: '1h'});
-    response.cookies('token', token, {maxAge: 360000});
+    response.cookie('token', token, {httpOnly: true, maxAge: 360000});
     return response.json({status: true , message: "Login Succesffuly"})
 
   }catch(err){
     return response.status("500").json({message: 'Fail to Login In' , error : err.message})
+  }
+});
+
+router.post('/forgorPassword', async(request, response) => {
+  const {email} = request.body;
+
+  try {
+    const user = await User.findOne({email});
+
+    if(!user){
+     return  response.status(404).json({mesage: "User not registered"})
+    }
+
+var transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: 'youremail@gmail.com',
+    pass: 'yourpassword'
+  }
+});
+
+var mailOptions = {
+  from: 'youremail@gmail.com',
+  to: 'myfriend@yahoo.com',
+  subject: 'Sending Email using Node.js',
+  text: 'That was easy!'
+};
+
+transporter.sendMail(mailOptions, function(error, info){
+  if (error) {
+    console.log(error);
+  } else {
+    console.log('Email sent: ' + info.response);
+  }
+});
+
+
+
+  } catch (error) {
+    
   }
 })
 

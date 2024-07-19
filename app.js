@@ -7,6 +7,9 @@ const routes = require("./routes");
 const dotenv = require("dotenv")
 const mongoose = require("mongoose");
 const cors = require('cors')
+const cookieParser = require('cookie-parser');
+
+
 
 
 
@@ -14,13 +17,20 @@ const cors = require('cors')
 var jsonParser = require("body-parser").json  //has multiple parse to manage http request
 var logger = require("morgan");
 
-dotenv.config();
 
-const port = process.env.PORT || 5000;
+
+const port = process.env.PORT;
 const MONGOURL = process.env.MONGO_URL;
 
 application.use(express.json());
-application.use(cors( ))
+application.use(cors(
+    {
+        origin: ['http://localhost:5173'],
+        credentials: true
+    }
+))
+application.use(cookieParser())
+dotenv.config();
 
 //handling routes
 application.use("/", routes);
@@ -50,13 +60,13 @@ async function connectWithRetry() {
     try{
 
         //connecting to mongo db database
-        const databaseConnected = await mongoose.connect(MONGOURL);
+        const databaseConnected = await mongoose.connect(process.env.MONGO_URL);
 
 
         //verifying the database is connected
         if(databaseConnected){
-            application.listen(port, () => {
-                console.log(`database has been connected and server is running on port ${port}`)
+            application.listen(process.env.PORT, () => {
+                console.log(`database has been connected and server is running on port ${process.env.PORT}`)
             });
 
         } else {
