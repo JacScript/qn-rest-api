@@ -329,7 +329,6 @@ router.post("/auth/login", async (request, response) => {
   }
 });
 
-//http://localhost:3000/auth/forgotPassword
 router.post("/auth/forgotPassword", async (request, response) => {
   const { email } = request.body;
 
@@ -367,6 +366,25 @@ router.post("/auth/forgotPassword", async (request, response) => {
   } catch (error) {
     console.log(error);
   }
+});
+
+router.post("/auth/resetPassword/:token", async(request, response) => {
+    const {token } = request.params;
+    const  {password} = request.body;
+
+    try {
+
+      const decoded = await jwt.verify(token , process.env.KEY); 
+      const id = decoded.id;
+      const hashPassword = await bcrypt.hash(password, 10);
+      await User.findByIdAndUpdate({_id:id}, {password: hashPassword})
+      return response.json({status: true, message: "Password Updated"})
+      
+    } catch (err) {
+      console.error(err);
+      return response.json({message: "Invalid token"})
+    }
+
 });
 
 module.exports = router;
