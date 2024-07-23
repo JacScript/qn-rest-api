@@ -317,11 +317,11 @@ router.post("/auth/login", async (request, response) => {
       return response.json({ message: "password incorrect" });
     }
 
-    const token = jwt.sign({ username: user.username }, process.env.KEY, {
-      expiresIn: "5m",
+    const token = jwt.sign({ _id: user.id }, process.env.KEY, {
+      expiresIn: "30m",
     });
     response.cookie("token", token, { httpOnly: true, maxAge: 360000 });
-    return response.json({ status: true, message: "Login Succesffuly" });
+    return response.json({ status: true, message: "Login Succesffuly", user , token});
   } catch (err) {
     return response
       .status("500")
@@ -385,6 +385,56 @@ router.post("/auth/resetPassword/:token", async(request, response) => {
       return response.json({message: "Invalid token"})
     }
 
+});
+
+
+// Function to verify the token (replace with your secret key)
+// const verifyToken = (req, res, next) => {
+//   const token = req.headers['authorization'];
+//   if (!token) {
+//     return res.status(401).json({ message: 'Unauthorized access' });
+//   }
+//   jwt.verify(token, 'your_secret_key', (err, decoded) => {
+//     if (err) {
+//       return res.status(403).json({ message: 'Forbidden (invalid token)' });
+//     }
+//     req.decoded = decoded;
+//     next();
+//   });
+// };
+
+
+
+router.get("/profile", async(request, response) => {
+  try {
+    // Get token from cookie
+    const token = request.cookies.token;
+
+    // Check if token exists
+    if (!token) {
+      return response.status(401).json({ message: 'Unauthorized: Missing access token' });
+    }
+
+    // Verify the token using JWT secret (replace with your secret)
+    const decoded = jwt.verify(token, process.env.KEY);
+
+    // Get the user ID from the decoded token
+    const id = require.decoded.id;
+
+    // Find the user by ID in MongoDB
+    const user = await User.findById(id);
+
+    // Check if user exists
+    if (!user) {
+      return response.status(404).json({ message: 'User not found' });
+    }
+
+    // Return the username
+    return response.status(200).json({user: user.username});
+  } catch (err) {
+    console.error(err);
+   return response.status(500).json({ message: 'Internal server error' });
+  }
 });
 
 module.exports = router;
