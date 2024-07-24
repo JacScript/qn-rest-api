@@ -38,18 +38,18 @@ application.use("/", routes);
 
 //catch 404 and forward to error handleer
 application.use((request, response, next) => {
-   var err = new Error("Not Found");
+   var err = new Error(`Not Found - ${request.originalUrl}`);
    err.status = 404;
    next(err);
 });
 
 //Error Handler
 application.use((error, request, response, next) => {
-    response.status(error.status || 500);
+     const statusCode = response.statusCode  === 200 ?  500 : response.statusCode; 
+    response.status(statusCode);
     response.json({
-        error: {
-            message: error.message
-        }
+            message: error.message,
+            stack :  process.env.NODE_ENV === "production" ? null : error.stack,
     })
 });
 

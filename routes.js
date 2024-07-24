@@ -8,12 +8,14 @@ const { mongoose } = require("mongoose");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 var nodemailer = require("nodemailer");
+const genarateToken = require('./utils/generateToken.js')
 
 //import files
 
 const Question = require("./models/qnModel.js");
 const Answer = require("./models/ansModel.js");
 const User = require("./models/userModel.js");
+const generateToken = require("./utils/generateToken.js");
 
 // Route to get all questions (with populated answers)
 router.get("/questions", async (request, response) => {
@@ -293,7 +295,7 @@ router.post("/auth/signup", async (request, response) => {
     });
 
     await newUser.save();
-    return response.json({ status: true, message: "Record registed" });
+    return response.json({ status: true, message: "Record registed" , user: newUser , token:generateToken(newUser._id)});
   } catch (err) {
     return response
       .status(500)
@@ -302,26 +304,27 @@ router.post("/auth/signup", async (request, response) => {
 });
 
 router.post("/auth/login", async (request, response) => {
-  const { email, password } = request.body;
-
+  
   try {
+    const { email, password } = request.body;
     const user = await User.findOne({ email });
 
     if (!user) {
       return response.status(404).json({ message: "User is not registered" });
     }
 
-    const validPassword = bcrypt.compare(password, user.password);
+    const validPassword = await bcrypt.compare(password, user.password);
 
     if (!validPassword) {
       return response.json({ message: "password incorrect" });
     }
 
-    const token = jwt.sign({ _id: user.id }, process.env.KEY, {
-      expiresIn: "30m",
-    });
-    response.cookie("token", token, { httpOnly: true, maxAge: 360000 });
-    return response.json({ status: true, message: "Login Succesffuly", user , token});
+    // const token = jwt.sign({username : user.username  }, process.env.KEY, {
+    //   expiresIn: "30m",
+    // });
+    // response.cookie("token", token, { httpOnly: true, maxAge: 360000 });
+
+    return response.json({ status: true, message: "Login Succesffuly", user, token:genarateToken(user._id)});
   } catch (err) {
     return response
       .status("500")
@@ -405,9 +408,10 @@ router.post("/auth/resetPassword/:token", async(request, response) => {
 
 
 
-router.get("/profile", async(request, response) => {
+router.get("/profile/", async(request, response) => {
   try {
     // Get token from cookie
+    // const token = request.params.token;
     const token = request.cookies.token;
 
     // Check if token exists
@@ -424,7 +428,7 @@ router.get("/profile", async(request, response) => {
     // Find the user by ID in MongoDB
     const user = await User.findById(id);
 
-    // Check if user exists
+    // Check if user exists 
     if (!user) {
       return response.status(404).json({ message: 'User not found' });
     }
