@@ -9,17 +9,12 @@ const mongoose = require("mongoose");
 const cors = require('cors')
 const cookieParser = require('cookie-parser');
 
-
-
-
-
-
 var jsonParser = require("body-parser").json  //has multiple parse to manage http request
 var logger = require("morgan");
 
 
 
-const port = process.env.PORT;
+const port = process.env.PORT || 5000;
 const MONGOURL = process.env.MONGO_URL;
 
 application.use(express.json());
