@@ -33,8 +33,9 @@ router.get("/questions", async (request, response) => {
 //Route for creating questions
 router.post("/questions", async (request, response, next) => {
   try {
-    const { questionText } = request.body;
-    const newQuestion = new Question({ questionText });
+    const token = request.cookies;
+    const { title, questionText } = request.body;
+    const newQuestion = new Question({ title, questionText });
     await newQuestion.save();
 
     // Sort logic: Replace this with your actual sorting criteria
@@ -42,6 +43,7 @@ router.post("/questions", async (request, response, next) => {
     questions.push(newQuestion); // Add new question to the array
     questions.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)); // Sort by creation time (descending)
 
+    console.log(token)
     // Save all questions (including the new one)
     await Promise.all(questions.map((question) => question.save()));
     response.status(201).json({
@@ -287,6 +289,8 @@ router.post("/auth/signup", async (request, response) => {
       return response.json({ message: "User Already existed" });
     }
 
+  
+
     const hashpassword = await bcrypt.hash(password, 10);
     const newUser = new User({
       username,
@@ -295,7 +299,12 @@ router.post("/auth/signup", async (request, response) => {
     });
 
     await newUser.save();
-    return response.json({ status: true, message: "Record registed" , user: newUser , token:generateToken(newUser._id)});
+
+    const token = jwt.sign({id: User._id }, process.env.KEY, {
+      expiresIn: "30m",
+    });
+    response.cookie("token", token, { httpOnly: true, maxAge: 360000 });
+    return response.json({ status: true, message: "Record registed" , user: newUser , token:token});
   } catch (err) {
     return response
       .status(500)
@@ -319,12 +328,12 @@ router.post("/auth/login", async (request, response) => {
       return response.status(401).json({ message: "password incorrect" });
     }
 
-    // const token = jwt.sign({username : user.username  }, process.env.KEY, {
-    //   expiresIn: "30m",
-    // });
-    // response.cookie("token", token, { httpOnly: true, maxAge: 360000 });
+    const token = jwt.sign({id: user._id }, process.env.KEY, {
+      expiresIn: "30m",
+    });
+    response.cookie("token", token, { httpOnly: true, maxAge: 360000 });
 
-    return response.json({ status: true, message: "Login Succesffuly", user, token:genarateToken(user._id)});
+    return response.json({ status: true, message: "Login Succesffuly", user, token: token});
   } catch (err) {
     return response
       .status("500")
