@@ -49,7 +49,8 @@ router.post("/questions", async (request, response, next) => {
     response.status(201).json({
       message: "Question created and sorted successfully",
       question: newQuestion,
-    });
+    }
+  );
   } catch (err) {
     response
       .status(500)
