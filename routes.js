@@ -59,16 +59,16 @@ router.post("/questions", async (request, response, next) => {
 });
 
 // Route to get a specific question by ID
-router.get("/questions/:qID", async (request, response) => {
+router.get("/questions/:id", async (request, response) => {
   try {
-    const { qID } = request.params;
+    const { id } = request.params;
 
     // Verify valid object ID format (optional, but recommended for security)
-    if (!mongoose.Types.ObjectId.isValid(qID)) {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
       return response.status(400).json({ message: "Invalid question ID" });
     }
 
-    const question = await Question.findById(qID);
+    const question = await Question.findById(id);
 
     if (!question) {
       return response.status(404).json({ message: "Question not found" });
