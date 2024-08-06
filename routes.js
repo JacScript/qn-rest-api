@@ -21,6 +21,8 @@ const generateToken = require("./utils/generateToken.js");
 router.get("/questions", async (request, response) => {
   try {
     const questions = await Question.find().populate("answers");
+    questions.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)); // Sort by creation time (descending)
+
     response.json(questions);
   } catch (err) {
     response
@@ -304,7 +306,7 @@ router.post("/auth/signup", async (request, response) => {
     const token = jwt.sign({id: User._id }, process.env.KEY, {
       expiresIn: "30m",
     });
-    response.cookie("token", token, { httpOnly: true, maxAge: 360000 });
+    // response.cookie("token", token, { httpOnly: true, maxAge: 360000 });
     return response.json({ status: true, message: "Record registed" , user: newUser , token:token});
   } catch (err) {
     return response
