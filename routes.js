@@ -15,6 +15,7 @@ const genarateToken = require('./utils/generateToken.js')
 const Question = require("./models/qnModel.js");
 const Answer = require("./models/ansModel.js");
 const User = require("./models/userModel.js");
+const Tag = require("./models/tagModel.js")
 const generateToken = require("./utils/generateToken.js");
 
 // Route to get all questions (with populated answers)
@@ -452,5 +453,31 @@ router.get("/profile/", async(request, response) => {
    return response.status(500).json({ message: 'Internal server error' });
   }
 });
+
+
+
+router.post("/tags", async (request, response) => {
+  try {
+    const { name } = request.body;
+
+    const tag = new Tag({ name });
+    const savedTag = await tag.save();
+    response.status(201).json({ message: savedTag });
+  } catch (error) {
+    console.log(error);
+    response.status(500).json({ message: error.message });
+  }
+});
+
+router.get('/tags', async (request, response) => {
+  try {
+    const tags = await Tag.find();
+    response.json(tags);
+  } catch (error) {
+    console.error(error);
+    response.status(500).json({ error: 'Error fetching tags' });
+  }
+});
+
 
 module.exports = router;
