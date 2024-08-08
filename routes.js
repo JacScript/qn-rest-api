@@ -456,23 +456,23 @@ router.get("/profile/", async(request, response) => {
 
 
 
-router.post("/tags", async (request, response) => {
-  try {
-    const { name } = request.body;
+// router.post("/tags", async (request, response) => {
+//   try {
+//     const { name } = request.body;
 
-    const tag = new Tag({ name });
-    const savedTag = await tag.save();
-    response.status(201).json({ message: savedTag });
-  } catch (error) {
-    console.log(error);
-    response.status(500).json({ message: error.message });
-  }
-});
+//     const tag = new Tag({ name });
+//     const savedTag = await tag.save();
+//     response.status(201).json({ message: savedTag });
+//   } catch (error) {
+//     console.log(error);
+//     response.status(500).json({ message: error.message });
+//   }
+// });
 
 router.get('/tags', async (request, response) => {
   try {
     const tags = await Tag.find();
-    response.json(tags);
+    response.status(201).json(tags);
   } catch (error) {
     console.error(error);
     response.status(500).json({ error: 'Error fetching tags' });
