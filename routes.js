@@ -301,15 +301,15 @@ router.post("/auth/signup", async (request, response) => {
 
     await newUser.save();
 
-    const token = jwt.sign({ id: User._id }, process.env.KEY, {
-      expiresIn: "30m",
-    });
+    // const token = jwt.sign({ id: User._id }, process.env.KEY, {
+    //   expiresIn: "30m",
+    // });
     // response.cookie("token", token, { httpOnly: true, maxAge: 360000 });
     return response.json({
       status: true,
       message: "Record registed",
       user: newUser,
-      token: token,
+      // token: token,
     });
   } catch (err) {
     return response
@@ -333,16 +333,16 @@ router.post("/auth/login", async (request, response) => {
       return response.status(401).json({ message: "password incorrect" });
     }
 
-    const token = jwt.sign({ id: user._id }, process.env.KEY, {
-      expiresIn: "30m",
-    });
-    response.cookie("token", token, { httpOnly: true, maxAge: 360000 });
+    // const token = jwt.sign({ id: user._id }, process.env.KEY, {
+    //   expiresIn: "30m",
+    // });
+    // response.cookie("token", token, { httpOnly: true, maxAge: 360000 });
 
     return response.json({
       status: true,
       message: "Login Succesffuly",
       user,
-      token: token,
+      // token: token,
     });
   } catch (err) {
     return response
