@@ -8,7 +8,9 @@ const { mongoose } = require("mongoose");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 var nodemailer = require("nodemailer");
-const genarateToken = require("./utils/generateToken.js");
+
+
+const asyncHandler = require("express-async-handler");
 
 //import files
 
@@ -17,6 +19,7 @@ const Answer = require("./models/ansModel.js");
 const User = require("./models/userModel.js");
 const Tag = require("./models/tagModel.js");
 const generateToken = require("./utils/generateToken.js");
+const protect = require("./middleware/authMiddleware.js");
 
 // Route to get all questions (with populated answers)
 router.get("/questions", async (request, response) => {
@@ -282,14 +285,114 @@ router.put("/questions/answer/vote", async (request, response) => {
   }
 });
 
-router.post("/auth/signup", async (request, response) => {
-  const { username, email, password } = request.body;
+// @desc    Auth user/set token
+//route     /auth/signup
+//@access   Public
+// router.post("/auth/signup", async (request, response) => {
+//   // const { username, email, password } = request.body;
 
-  try {
-    const user = await User.findOne({ email });
 
-    if (user) {
-      return response.json({ message: "User Already existed" });
+
+
+
+
+
+
+
+
+
+
+//   // try {
+//   //   const user = await User.findOne({ email });
+
+//   //   if (user) {
+//   //     return response.json({ message: "User Already existed" });
+//   //   }
+
+//   //   const hashpassword = await bcrypt.hash(password, 10);
+//   //   const newUser = new User({
+//   //     username,
+//   //     email,
+//   //     password: hashpassword,
+//   //   });
+
+//   //   await newUser.save();
+
+//   //   // const token = jwt.sign({ id: User._id }, process.env.KEY, {
+//   //   //   expiresIn: "30m",
+//   //   // });
+//   //   // response.cookie("token", token, { httpOnly: true, maxAge: 360000 });
+//   //   return response.json({
+//   //     status: true,
+//   //     message: "Record registed",
+//   //     user: newUser,
+//   //     // token: token,
+//   //   });
+//   // } catch (err) {
+//   //   return response
+//   //     .status(500)
+//   //     .json({ message: "Fail to register user", error: err.message });
+//   // }
+// });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// @desc    Auth user/set token
+//route     /auth/login
+//@access   Public
+router.post("/auth/login",asyncHandler(async(request, response) => {
+   const { email, password } = request.body;
+
+   const user = await User.findOne({ email});
+
+   const validPassword = await bcrypt.compare(password, user.password);
+
+   if (user && validPassword) {
+    generateToken(response, user._id)
+    response.status(201).json({
+      id: user._id,
+      username: user.username,
+      email: user.email,
+    });
+  } else {
+    response.status(400);
+    throw new Error("Invalid email or password");
+  } 
+
+
+
+
+
+  response.status(200).json({message: 'Auth User'});
+}))
+
+// @desc    Register a new user
+//route     /auth/signup
+//@access   Public
+router.post(
+  "/auth/signup",
+  asyncHandler(async (request, response) => {
+    const { username, email, password } = request.body;
+
+    const userExists = await User.findOne({ email });
+
+    if (userExists) {
+      response.status(400);
+      throw new Error("User already exists");
     }
 
     const hashpassword = await bcrypt.hash(password, 10);
@@ -301,55 +404,138 @@ router.post("/auth/signup", async (request, response) => {
 
     await newUser.save();
 
-    // const token = jwt.sign({ id: User._id }, process.env.KEY, {
-    //   expiresIn: "30m",
-    // });
-    // response.cookie("token", token, { httpOnly: true, maxAge: 360000 });
-    return response.json({
-      status: true,
-      message: "Record registed",
-      user: newUser,
-      // token: token,
-    });
-  } catch (err) {
-    return response
-      .status(500)
-      .json({ message: "Fail to register user", error: err.message });
+    if (newUser) {
+      generateToken(response, newUser._id)
+      response.status(201).json({
+        id: newUser._id,
+        username: newUser.username,
+        email: newUser.email,
+      });
+    } else {
+      response.status(400);
+      throw new Error("Invalid user data");
+    }
+    
+  })
+);
+
+
+// @desc    Logout user
+//route     /auth/logout
+//@access   Public
+router.post("/auth/logout",asyncHandler(async(request, response) => {
+  response.cookie('jwt', '',{
+    httpOnly: true,
+    expires: new Date(0)
+  })
+
+  response.status(200).json({message: 'User logged Out'});
+}))
+
+
+// @desc    getUser Profile
+//route     /auth/profile
+//@access   Private
+router.get("/auth/profile",protect, asyncHandler(async(request, response) => {
+  const user = {
+    _id: request.user._id,
+    username: request.user.username,
+    email: request.user.email
   }
-});
+  response.status(200).json(user);
+}));
 
-router.post("/auth/login", async (request, response) => {
-  try {
-    const { email, password } = request.body;
-    const user = await User.findOne({ email });
 
-    if (!user) {
-      return response.status(404).json({ message: "User is not registered" });
+// @desc    Update user profile
+//route     /auth/profile
+//@access   private
+router.put("/auth/profile",protect,asyncHandler(async(request, response) => {
+  const user = await User.findById(request.user._id);
+
+  if (user) {
+    user.username = request.body.username || user.username;
+    user.email = request.body.email || user.email;
+
+    if (request.body.password) {
+      user.password = request.body.password;
     }
 
-    const validPassword = await bcrypt.compare(password, user.password);
+    const updatedUser = await user.save();
 
-    if (!validPassword) {
-      return response.status(401).json({ message: "password incorrect" });
-    }
-
-    // const token = jwt.sign({ id: user._id }, process.env.KEY, {
-    //   expiresIn: "30m",
-    // });
-    // response.cookie("token", token, { httpOnly: true, maxAge: 360000 });
-
-    return response.json({
-      status: true,
-      message: "Login Succesffuly",
-      user,
-      // token: token,
+    response.status(200).json({
+      _id: updatedUser._id,
+      username: updatedUser.username,
+      email: updatedUser.email,
     });
-  } catch (err) {
-    return response
-      .status("500")
-      .json({ message: "Fail to Login In", error: err.message });
+  } else {
+    response.status(404);
+    throw new Error('User not found');
   }
-});
+}))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// router.post("/auth/login", async (request, response) => {
+//   try {
+//     const { email, password } = request.body;
+//     const user = await User.findOne({ email });
+
+//     if (!user) {
+//       return response.status(404).json({ message: "User is not registered" });
+//     }
+
+//     const validPassword = await bcrypt.compare(password, user.password);
+
+//     if (!validPassword) {
+//       return response.status(401).json({ message: "password incorrect" });
+//     }
+
+//     // const token = jwt.sign({ id: user._id }, process.env.KEY, {
+//     //   expiresIn: "30m",
+//     // });
+//     // response.cookie("token", token, { httpOnly: true, maxAge: 360000 });
+
+//     return response.json({
+//       status: true,
+//       message: "Login Succesffuly",
+//       user,
+//       // token: token,
+//     });
+//   } catch (err) {
+//     return response
+//       .status("500")
+//       .json({ message: "Fail to Login In", error: err.message });
+//   }
+// });
 
 // router.post("/auth/forgotPassword", async (request, response) => {
 //   const { email } = request.body;

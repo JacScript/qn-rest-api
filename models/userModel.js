@@ -1,5 +1,6 @@
  const {Schema, model} = require('mongoose');
 
+
 const schema = new Schema (
     {
         username: {
@@ -16,7 +17,26 @@ const schema = new Schema (
             require: true
         }
     }, {timestamps: true}
-)
+);
+
+// schema.pre({ document: true, query: false }, async (next) => {
+//   if (!this.isModified("password")) {
+//     next();
+//   }
+
+//   const salt = await bcrypt.genSalt(10);
+//   this.password = await bcrypt.hash(this.password, salt);
+// });
+
+// schema.pre('save', async() => {
+//     if(!this.isModified('password')) {
+//         next();
+//     }
+
+//     const salt = await bcrypt.genSalt(10);
+//     this.password = await bcrypt.hash(this.password, salt );
+
+// });
 
 
 //schema timestamps indexing
