@@ -362,8 +362,8 @@ router.post("/auth/login",asyncHandler(async(request, response) => {
    const validPassword = await bcrypt.compare(password, user.password);
 
    if (user && validPassword) {
-    generateToken(response, user._id)
-    response.status(201).json({
+     await generateToken(response, user._id)
+     await response.status(201).json({
       id: user._id,
       username: user.username,
       email: user.email,

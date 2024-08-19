@@ -1,10 +1,10 @@
 const jwt = require("jsonwebtoken");
 
-const generateToken = (response, userId) => {
-  const token = jwt.sign({ userId }, process.env.KEY, {
+const generateToken = async (response, userId) => {
+  const token =  await jwt.sign({ userId }, process.env.KEY, {
     expiresIn: "30d",
   });
-  response.cookie("jwt", token, {
+ await  response.cookie("jwt", token, {
     httpOnly: true,
     secure: process.env.NODE_ENV !== "development",
     sameSite: 'strict',
