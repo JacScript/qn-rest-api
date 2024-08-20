@@ -5,7 +5,7 @@
 const express = require("express");
 const router = express.Router();
 const { mongoose } = require("mongoose");
-const bcrypt = require("bcrypt");
+// const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 var nodemailer = require("nodemailer");
 
@@ -359,25 +359,18 @@ router.post("/auth/login",asyncHandler(async(request, response) => {
 
    const user = await User.findOne({ email});
 
-   const validPassword = await bcrypt.compare(password, user.password);
 
-   if (user && validPassword) {
-     await generateToken(response, user._id)
-     await response.status(201).json({
+   if (user && (await user.matchPassword(password))) {
+      generateToken(response, user._id);
+      response.status(201).json({
       id: user._id,
       username: user.username,
       email: user.email,
     });
   } else {
-    response.status(400);
+    response.status(401);
     throw new Error("Invalid email or password");
   } 
-
-
-
-
-
-  response.status(200).json({message: 'Auth User'});
 }))
 
 // @desc    Register a new user
@@ -395,27 +388,24 @@ router.post(
       throw new Error("User already exists");
     }
 
-    const hashpassword = await bcrypt.hash(password, 10);
-    const newUser = new User({
+    // const hashpassword = await bcrypt.hash(password, 10);
+    const user = await User.create({
       username,
       email,
-      password: hashpassword,
+      password,
     });
 
-    await newUser.save();
-
-    if (newUser) {
-      generateToken(response, newUser._id)
+    if (user) {
+      await generateToken(response, user._id);
       response.status(201).json({
-        id: newUser._id,
-        username: newUser.username,
-        email: newUser.email,
+        id: user._id,
+        username: user.username,
+        email: user.email,
       });
     } else {
       response.status(400);
       throw new Error("Invalid user data");
     }
-    
   })
 );
 

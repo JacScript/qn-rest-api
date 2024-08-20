@@ -6,8 +6,14 @@ const application = express();
 const routes = require("./routes");
 const dotenv = require("dotenv");
 const mongoose = require("mongoose");
-const cors = require("cors");
 const cookieParser = require("cookie-parser");
+application.use(cookieParser());
+dotenv.config();
+application.use(express.json());
+application.use(express.urlencoded({ extended: true }));
+
+
+const cors = require("cors");
 
 var jsonParser = require("body-parser").json; //has multiple parse to manage http request
 var logger = require("morgan");
@@ -17,15 +23,13 @@ const { notFound, errorHandler } = require("./middleware/errorMiddleware.js");
 const port = process.env.PORT || 5000;
 const MONGOURL = process.env.MONGO_URL;
 
-application.use(express.json());
 application.use(
   cors({
-    origin: ["http://localhost:5173"],
+    origin: ["http://localhost:5000"],
     credentials: true,
   })
 );
-application.use(cookieParser());
-dotenv.config();
+
 
 //handling routes
 application.use("/", routes);
