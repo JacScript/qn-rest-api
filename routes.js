@@ -9,7 +9,6 @@ const { mongoose } = require("mongoose");
 const jwt = require("jsonwebtoken");
 var nodemailer = require("nodemailer");
 
-
 const asyncHandler = require("express-async-handler");
 
 //import files
@@ -286,92 +285,28 @@ router.put("/questions/answer/vote", async (request, response) => {
 });
 
 // @desc    Auth user/set token
-//route     /auth/signup
-//@access   Public
-// router.post("/auth/signup", async (request, response) => {
-//   // const { username, email, password } = request.body;
-
-
-
-
-
-
-
-
-
-
-
-
-//   // try {
-//   //   const user = await User.findOne({ email });
-
-//   //   if (user) {
-//   //     return response.json({ message: "User Already existed" });
-//   //   }
-
-//   //   const hashpassword = await bcrypt.hash(password, 10);
-//   //   const newUser = new User({
-//   //     username,
-//   //     email,
-//   //     password: hashpassword,
-//   //   });
-
-//   //   await newUser.save();
-
-//   //   // const token = jwt.sign({ id: User._id }, process.env.KEY, {
-//   //   //   expiresIn: "30m",
-//   //   // });
-//   //   // response.cookie("token", token, { httpOnly: true, maxAge: 360000 });
-//   //   return response.json({
-//   //     status: true,
-//   //     message: "Record registed",
-//   //     user: newUser,
-//   //     // token: token,
-//   //   });
-//   // } catch (err) {
-//   //   return response
-//   //     .status(500)
-//   //     .json({ message: "Fail to register user", error: err.message });
-//   // }
-// });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// @desc    Auth user/set token
 //route     /auth/login
 //@access   Public
-router.post("/auth/login",asyncHandler(async(request, response) => {
-   const { email, password } = request.body;
+router.post(
+  "/auth/login",
+  asyncHandler(async (request, response) => {
+    const { email, password } = request.body;
 
-   const user = await User.findOne({ email});
+    const user = await User.findOne({ email });
 
-
-   if (user && (await user.matchPassword(password))) {
+    if (user && (await user.matchPassword(password))) {
       generateToken(response, user._id);
       response.status(201).json({
-      id: user._id,
-      username: user.username,
-      email: user.email,
-    });
-  } else {
-    response.status(401);
-    throw new Error("Invalid email or password");
-  } 
-}))
+        id: user._id,
+        username: user.username,
+        email: user.email,
+      });
+    } else {
+      response.status(401);
+      throw new Error("Invalid email or password");
+    }
+  })
+);
 
 // @desc    Register a new user
 //route     /auth/signup
@@ -409,123 +344,67 @@ router.post(
   })
 );
 
-
 // @desc    Logout user
 //route     /auth/logout
 //@access   Public
-router.post("/auth/logout",asyncHandler(async(request, response) => {
-  response.cookie('jwt', '',{
-    httpOnly: true,
-    expires: new Date(0)
+router.post(
+  "/auth/logout",
+  asyncHandler(async (request, response) => {
+    response.cookie("jwt", "", {
+      httpOnly: true,
+      expires: new Date(0),
+    });
+
+    response.status(200).json({ message: "User logged Out" });
   })
-
-  response.status(200).json({message: 'User logged Out'});
-}))
-
+);
 
 // @desc    getUser Profile
 //route     /auth/profile
 //@access   Private
-router.get("/auth/profile",protect, asyncHandler(async(request, response) => {
-  const user = {
-    _id: request.user._id,
-    username: request.user.username,
-    email: request.user.email
-  }
-  response.status(200).json(user);
-}));
-
+router.get(
+  "/auth/profile",
+  protect,
+  asyncHandler(async (request, response) => {
+    const user = {
+      _id: request.user._id,
+      username: request.user.username,
+      email: request.user.email,
+    };
+    response.status(200).json(user);
+  })
+);
 
 // @desc    Update user profile
 //route     /auth/profile
 //@access   private
-router.put("/auth/profile",protect,asyncHandler(async(request, response) => {
-  const user = await User.findById(request.user._id);
+router.put(
+  "/auth/profile",
+  protect,
+  asyncHandler(async (request, response) => {
+    const user = await User.findById(request.user._id);
 
-  if (user) {
-    user.username = request.body.username || user.username;
-    user.email = request.body.email || user.email;
+    if (user) {
+      user.username = request.body.username || user.username;
+      user.email = request.body.email || user.email;
 
-    if (request.body.password) {
-      user.password = request.body.password;
+      if (request.body.password) {
+        user.password = request.body.password;
+      }
+
+      const updatedUser = await user.save();
+
+      response.status(200).json({
+        _id: updatedUser._id,
+        username: updatedUser.username,
+        email: updatedUser.email,
+      });
+    } else {
+      response.status(404);
+      throw new Error("User not found");
     }
-
-    const updatedUser = await user.save();
-
-    response.status(200).json({
-      _id: updatedUser._id,
-      username: updatedUser.username,
-      email: updatedUser.email,
-    });
-  } else {
-    response.status(404);
-    throw new Error('User not found');
-  }
-}))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// router.post("/auth/login", async (request, response) => {
-//   try {
-//     const { email, password } = request.body;
-//     const user = await User.findOne({ email });
-
-//     if (!user) {
-//       return response.status(404).json({ message: "User is not registered" });
-//     }
-
-//     const validPassword = await bcrypt.compare(password, user.password);
-
-//     if (!validPassword) {
-//       return response.status(401).json({ message: "password incorrect" });
-//     }
-
-//     // const token = jwt.sign({ id: user._id }, process.env.KEY, {
-//     //   expiresIn: "30m",
-//     // });
-//     // response.cookie("token", token, { httpOnly: true, maxAge: 360000 });
-
-//     return response.json({
-//       status: true,
-//       message: "Login Succesffuly",
-//       user,
-//       // token: token,
-//     });
-//   } catch (err) {
-//     return response
-//       .status("500")
-//       .json({ message: "Fail to Login In", error: err.message });
-//   }
-// });
+  })
+);
 
 // router.post("/auth/forgotPassword", async (request, response) => {
 //   const { email } = request.body;
@@ -598,43 +477,5 @@ router.put("/auth/profile",protect,asyncHandler(async(request, response) => {
 //     next();
 //   });
 // };
-
-// router.get("/profile/", async (request, response) => {
-//   try {
-//     // Get token from cookie
-//     // const token = request.params.token;
-//     const token = request.cookies.token;
-
-//     // Check if token exists
-//     if (!token) {
-//       return response
-//         .status(401)
-//         .json({ message: "Unauthorized: Missing access token" });
-//     }
-
-//     // Verify the token using JWT secret (replace with your secret)
-//     const decoded = jwt.verify(token, process.env.KEY);
-
-//     // Get the user ID from the decoded token
-//     const id = require.decoded.id;
-
-//     // Find the user by ID in MongoDB
-//     const user = await User.findById(id);
-
-//     // Check if user exists
-//     if (!user) {
-//       return response.status(404).json({ message: "User not found" });
-//     }
-
-//     // Return the username
-//     return response.status(200).json({ user: user.username });
-//   } catch (err) {
-//     console.error(err);
-//     return response.status(500).json({ message: "Internal server error" });
-//   }
-// });
-
-
-
 
 module.exports = router;
