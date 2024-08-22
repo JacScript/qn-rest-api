@@ -18,6 +18,14 @@ const schema = new Schema(
       },
     ],
 
+    //reference the user model
+    user: {
+      ref: "User",
+      required: true,
+      type: Schema.Types.ObjectId,
+      autopopulate: { maxDepth: 1 }
+    },
+
     //(references the Answer model)
     answers: [
       {

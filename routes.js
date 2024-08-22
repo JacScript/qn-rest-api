@@ -35,12 +35,12 @@ router.get("/questions", async (request, response) => {
 });
 
 //POST /questions
-//Route for creating questions
-router.post("/questions", async (request, response, next) => {
+//Route for creating question
+router.post("/question", async (request, response, next) => {
   try {
     // const token = request.cookies;
     const { title, questionText, tags } = request.body;
-    const newQuestion = new Question({ title, questionText, tags });
+    const newQuestion = new Question({ title, questionText, tags, user: User._id });
     await newQuestion.save();
 
     // Sort logic: Replace this with your actual sorting criteria
@@ -63,7 +63,7 @@ router.post("/questions", async (request, response, next) => {
 });
 
 // Route to get a specific question by ID
-router.get("/questions/:id", async (request, response) => {
+router.get("/question/:id", async (request, response) => {
   try {
     const { id } = request.params;
 
