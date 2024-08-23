@@ -39,8 +39,11 @@ router.get("/questions", async (request, response) => {
 router.post("/question", async (request, response, next) => {
   try {
     // const token = request.cookies;
-    const { title, questionText, tags } = request.body;
-    const newQuestion = new Question({ title, questionText, tags, user: User._id });
+    const { title, questionText, tags , user} = request.body;
+
+    //get user id
+    // const userId = User._id
+    const newQuestion = new Question({ title, questionText, tags, user});
     await newQuestion.save();
 
     // Sort logic: Replace this with your actual sorting criteria
@@ -48,12 +51,11 @@ router.post("/question", async (request, response, next) => {
     questions.push(newQuestion); // Add new question to the array
     questions.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)); // Sort by creation time (descending)
 
-    // console.log(token)
-    // Save all questions (including the new one)
+      // Save all questions (including the new one)
     await Promise.all(questions.map((question) => question.save()));
     response.status(201).json({
       message: "Question created and sorted successfully",
-      question: newQuestion,
+      question: newQuestion      
     });
   } catch (err) {
     response
