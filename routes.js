@@ -74,7 +74,8 @@ router.get("/question/:id", async (request, response) => {
       return response.status(400).json({ message: "Invalid question ID" });
     }
 
-    const question = await Question.findById(id);
+    const question = await Question.findById(id).populate('user', '-password');
+   
 
     if (!question) {
       return response.status(404).json({ message: "Question not found" });
