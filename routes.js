@@ -222,7 +222,7 @@ router.delete("/questions/answer", async (request, response) => {
 //POST /questions/:qID/answers/aID/vote-up
 //POST /questions/:qID/answers/aID/vote-down
 //Vote for  a specific answer
-router.put("/questions/answer/vote", async (request, response) => {
+router.put("/question/answer/vote", async (request, response) => {
   try {
     const { qID, aID, vote } = request.body;
 
@@ -286,6 +286,64 @@ router.put("/questions/answer/vote", async (request, response) => {
       .json({ message: "Error voting for answer", error: err.message });
   }
 });
+
+
+//POST /questions/:qID/vote
+//POST /questions/:qID/vote
+//Vote for  a specific question
+router.put("/question/vote", async (request, response) => {
+  try {
+    const { qID, vote } = request.body;
+
+    // Verify valid object ID formats (security)
+    if (!mongoose.Types.ObjectId.isValid(qID)) {
+      return response.status(400).json({ message: "Invalid question Id" });
+    }
+
+    const question = await Question.findById(qID);
+
+    if (!question) {
+      return response.status(404).json({ message: "Question Not Found" });
+    }
+
+    // Validate vote: Ensure vote is either "up" or "down"
+    if (vote !== "up" && vote !== "down") {
+      return response
+        .status(400)
+        .json({ message: "Invalid vote type (up or down only)" });
+    }
+
+    //Update vote based on type:
+    if (vote === "up") {
+      question.votes++;
+    } else {
+      // vote === 'down'
+      // question.votes--;
+      question.votes = Math.max(question.votes - 1, 0);
+    }
+
+    await question.save(); // Save updated question with modified answer
+
+    // Fetch the updated question with populated answers for sorting
+    const updatedQuestion = await Question.findById(qID);
+
+    response.status(200).json({
+      message: `Successfully voted ${vote} on the answer`,
+      question: updatedQuestion,
+    });
+  } catch (err) {
+    return response
+      .status(500)
+      .json({ message: "Error voting for answer", error: err.message });
+  }
+});
+
+
+
+
+
+
+
 
 // @desc    Auth user/set token
 //route     /auth/login
