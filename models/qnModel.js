@@ -22,6 +22,14 @@ const schema = new Schema(
       default: 0,
     },
 
+    comments: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Comment",
+        required: true,
+      },
+    ],
+
     //reference the user model
     user: {
       ref: "User",

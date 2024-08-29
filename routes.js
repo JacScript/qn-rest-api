@@ -16,7 +16,8 @@ const asyncHandler = require("express-async-handler");
 const Question = require("./models/qnModel.js");
 const Answer = require("./models/ansModel.js");
 const User = require("./models/userModel.js");
-const Tag = require("./models/tagModel.js");
+const Tags = require("./models/tagModel.js")
+const Comment = require("./models/commentModel.js")
 const generateToken = require("./utils/generateToken.js");
 const protect = require("./middleware/authMiddleware.js");
 
@@ -287,6 +288,113 @@ router.put("/question/answer/vote", async (request, response) => {
   }
 });
 
+
+//Get /question/comment
+//Get comments for a specific answer
+router.get("/comment/:id", async (request, response) => {
+ 
+  try {
+    const { id } = request.params; 
+
+
+    if (
+      !mongoose.Types.ObjectId.isValid(id)) {
+      return response
+        .status(400)
+        .json({ message: "Invalid question Id" });
+    }
+
+
+      // Find the question based on qID
+      const question = await Question.findById(id)
+      .populate("comments")
+      .populate({ path: 'comments.user', select: 'email' });
+
+
+
+
+
+
+      if (!question) {
+          return response.status(404).json({ error: 'Question not found' });
+      }
+
+      // const data = question.comments.populate("user", "email")
+
+      // // Find comments for the question, optionally filtering by text
+      // const comments = await Comment.find({ question: question._id })
+      //     .populate('user', 'name email') // Populate user information if needed
+      //     .sort({ createdAt: -1 }); // Sort comments by creation time descending
+
+      // if (text) {
+      //     comments = comments.filter(comment => comment.text.toLowerCase().includes(text.toLowerCase()));
+      // }
+
+      response.status(200).json({comments : question.comments})
+  } catch (error) {
+      console.error(error);
+      response.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+
+router.post("/comment", async (request, response) => {
+  // Extract question ID and comment memo from request body
+
+  try {
+
+  const { qID, memo , userId} = request.body;
+
+    // Validate question ID format
+    if (!mongoose.Types.ObjectId.isValid(qID)) {
+      return response
+        .status(400) // Bad request
+        .json({ message: "Invalid question Id" });
+    }
+
+    // Find the question by its ID
+    const question = await Question.findById(qID);
+
+    // Check if question exists
+    if (!question) {
+      return response.status(404).json({ message: "Question Not Found" });
+    }
+
+    // Create a new comment object
+    const newComment = new Comment({ memo, user: userId }); // Associate comment with question
+    
+    // Add the comment reference to the question's comments array
+     question.comments.push(newComment._id);
+
+    // Save the new comment
+    await Promise.all([question.save(), newComment.save()]);
+
+
+    // Save both the question (with updated comments) and the new comment
+    // await question.save();
+
+    // Fetch the updated question with populated comments
+    const updatedQuestion = await Question.findById(qID).populate("comments");
+
+    // Sort comments based on votes and updated date for a balanced ranking
+    updatedQuestion.comments.sort((a, b) => {
+      if (a.votes === b.votes) {
+        return b.updatedAt - a.updatedAt; // Sort by descending update date if votes are equal
+      }
+      return b.votes - a.votes; // Sort by descending votes
+    });
+
+    // Send successful response with new comment, sorted comments, and message
+    response.status(201).json({
+      message: "Comment created successfully",
+      comments: newComment,
+      sortedComments: updatedQuestion.comments,
+    });
+  } catch (error) {
+    console.error(error);
+    response.status(500).json({ error: "Internal server error" });
+  }
+});
 
 //POST /questions/:qID/vote
 //POST /questions/:qID/vote
