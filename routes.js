@@ -291,51 +291,66 @@ router.put("/question/answer/vote", async (request, response) => {
 
 //Get /question/comment
 //Get comments for a specific answer
-router.get("/comment/:id", async (request, response) => {
- 
+router.get("/question/:qID/comments", async (request, response) => { 
   try {
-    const { id } = request.params; 
+    const { qID } = request.params; 
 
 
     if (
-      !mongoose.Types.ObjectId.isValid(id)) {
+      !mongoose.Types.ObjectId.isValid(qID)) {
       return response
         .status(400)
         .json({ message: "Invalid question Id" });
     }
 
 
-      // Find the question based on qID
-      const question = await Question.findById(id)
-      .populate("comments")
-      .populate({ path: 'comments.user', select: 'email' });
-
-
-
-
+      // // Find the question based on qID
+      const question = await Question.findById(qID)
+      .populate({
+        path: "comments",
+        populate: { path: "user", select: "email" },
+      });
 
 
       if (!question) {
           return response.status(404).json({ error: 'Question not found' });
       }
 
-      // const data = question.comments.populate("user", "email")
+      const comments = question.comments;
 
-      // // Find comments for the question, optionally filtering by text
-      // const comments = await Comment.find({ question: question._id })
-      //     .populate('user', 'name email') // Populate user information if needed
-      //     .sort({ createdAt: -1 }); // Sort comments by creation time descending
-
-      // if (text) {
-      //     comments = comments.filter(comment => comment.text.toLowerCase().includes(text.toLowerCase()));
-      // }
-
-      response.status(200).json({comments : question.comments})
+      response.status(200).json({comments})
   } catch (error) {
       console.error(error);
       response.status(500).json({ error: 'Internal server error' });
   }
 });
+
+// router.get("/question/:qID/comments", async (request, response) => {
+//   const { qID} = request.params;
+//   const {memo} = request.query; // Use req.query for GET parameters
+
+//   try {
+//     if (!mongoose.Types.ObjectId.isValid(qID)) {
+//       return response
+//         .status(400)
+//         .json({ message: "Invalid question Id..." });
+//     }
+
+//     // Find comments for the question, optionally filtering by text
+//     let comments = await Comment.find({ question: qID })
+//       .populate('user', 'name email') // Populate user information if needed
+//       .sort({ createdAt: -1 }); // Sort comments by creation time descending
+
+//     if (memo) {
+//       comments = comments.filter(comment => comment.memo.toLowerCase().includes(memo.toLowerCase()));
+//     }
+
+//     response.status(200).json({ comments });
+//   } catch (error) {
+//     console.error(error);
+//     response.status(500).json({ error: 'Internal server error' });
+//   }
+// });
 
 
 router.post("/comment", async (request, response) => {
@@ -426,7 +441,7 @@ router.put("/question/vote", async (request, response) => {
       question.votes++;
     } else {
       // vote === 'down'
-      // question.votes--;
+      question.votes--;
       question.votes = Math.max(question.votes - 1, 0);
     }
 
