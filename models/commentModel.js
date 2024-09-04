@@ -10,6 +10,10 @@ const schema = new Schema({
     ref: "User",
     // required: true,
   },
+  votes: {
+    type: Number,
+    default: 0,
+  },
   // ... other fields
 }, { timestamps: true });
 

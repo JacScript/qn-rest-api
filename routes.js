@@ -414,6 +414,54 @@ router.post("/comment", async (request, response) => {
 //POST /questions/:qID/vote
 //POST /questions/:qID/vote
 //Vote for  a specific question
+router.put("/comments/vote", async (request, response) => {
+  try {
+    const { commentID, vote } = request.body;
+
+    // Verify valid object ID formats (security)
+    if (!mongoose.Types.ObjectId.isValid(commentID)) {
+      return response.status(400).json({ message: "Invalid question Id" });
+    }
+
+    const comment = await Comment.findById(commentID);
+
+    if (!comment) {
+      return response.status(404).json({ message: "Question Not Found" });
+    }
+
+    // Validate vote: Ensure vote is either "up" or "down"
+    if (vote !== "up") {
+      return response
+        .status(400)
+        .json({ message: "Invalid vote type (up or down only)" });
+    }
+
+    //Update vote based on type:
+    if (vote === "up") {
+      comment.votes++;
+    } 
+
+
+
+    await comment.save(); // Save updated question with modified answer
+
+    // Fetch the updated question with populated answers for sorting
+    const updatedComment = await Comment.findById(commentID);
+
+    response.status(200).json({
+      message: `Successfully voted ${vote} on the answer`,
+      comment: updatedComment,
+    });
+  } catch (err) {
+    return response
+      .status(500)
+      .json({ message: "Error voting for answer", error: err.message });
+  }
+});
+
+//POST /questions/:qID/vote
+//POST /questions/:qID/vote
+//Vote for  a specific question
 router.put("/question/vote", async (request, response) => {
   try {
     const { qID, vote } = request.body;
@@ -430,11 +478,11 @@ router.put("/question/vote", async (request, response) => {
     }
 
     // Validate vote: Ensure vote is either "up" or "down"
-    if (vote !== "up" && vote !== "down") {
-      return response
-        .status(400)
-        .json({ message: "Invalid vote type (up or down only)" });
-    }
+    // if (vote !== "up" && vote !== "down" ) {
+    //   return response
+    //     .status(400)
+    //     .json({ message: "Invalid vote type (up or down only)" });
+    // }
 
     //Update vote based on type:
     if (vote === "up") {
@@ -479,11 +527,12 @@ router.post(
     const user = await User.findOne({ email });
 
     if (user && (await user.matchPassword(password))) {
-      generateToken(response, user._id);
-      response.status(201).json({
+     const token = await generateToken(response, user._id);
+      response.status(200).json({
         id: user._id,
         username: user.username,
         email: user.email,
+        token: token
       });
     } else {
       response.status(401);
@@ -515,11 +564,12 @@ router.post(
     });
 
     if (user) {
-      await generateToken(response, user._id);
+      const token = await generateToken(response, user._id);
       response.status(201).json({
         id: user._id,
         username: user.username,
         email: user.email,
+        token
       });
     } else {
       response.status(400);
