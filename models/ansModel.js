@@ -5,14 +5,18 @@ const schema = new Schema(
     text: {
       type: String,
       required: true,
-    },
-    upvotes: {
-      type: Number, 
-      default: 0 
-    },
-    downvotes: {
+          },
+    votes: {
       type: Number,
-      default: 0},
+      default: 0,
+          },
+    //reference the user model
+    user: {
+      ref: "User",
+      type: Schema.Types.ObjectId,
+      // required: true,
+      // autopopulate: { maxDepth: 1 },
+    },
   },
   { timestamps: true }
 );

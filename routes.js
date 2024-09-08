@@ -95,7 +95,7 @@ router.get("/question/:id", async (request, response) => {
 //Route for creating  an answer
 router.post("/questions/answer", async (request, response) => {
   try {
-    const { qID, text } = request.body; //Etract the question Id &  the answer text from the request body
+    const { qID, text, user } = request.body; //Etract the question Id &  the answer text from the request body
 
     //Verify valid object ID format(optional, but recommended for security)
     if (!mongoose.Types.ObjectId.isValid(qID)) {
@@ -108,7 +108,7 @@ router.post("/questions/answer", async (request, response) => {
       return response.status(404).json({ message: "Question Not Found" });
     }
 
-    const newAnswer = new Answer({ text }); //Create new answer object
+    const newAnswer = new Answer({ text, user }); //Create new answer object
     question.answers.push(newAnswer._id); // Add answer reference to question
 
     await Promise.all([question.save(), newAnswer.save()]);
@@ -132,6 +132,39 @@ router.post("/questions/answer", async (request, response) => {
       .status(500)
       .json({ message: "Error creating answer", error: error.message });
   }
+});
+
+
+// Route to get all answers of a specific question
+router.get('/questions/:qID/answers', async (request, response) => {
+
+    try {
+
+  const { qID } = request.params;
+
+        // Check if the question exists
+        
+        //Verify valid object ID format(optional, but recommended for security)
+    if (!mongoose.Types.ObjectId.isValid(qID)) {
+      return response.status(400).json({ message: "Invalid question ID" });
+    }
+
+    const question = await Question.findById(qID).populate("answers");
+
+        if (!question) {
+            return response.status(404).json({ message: 'Question not found' });
+        }
+
+        // Find all answers related to the specific question
+        // const answers = await Answer.findById(qID).populate("answers")
+
+       const answer = question.answers;
+        // Send the answers as a response
+        response.status(200).json({answer});
+    } catch (err) {
+        console.error(err);
+        response.status(500).json({ message: 'Server error' });
+    }
 });
 
 //PUT /questions/:qID/answers/:aID
