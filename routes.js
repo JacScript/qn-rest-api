@@ -256,63 +256,52 @@ router.delete("/questions/answer", async (request, response) => {
 //POST /questions/:qID/answers/aID/vote-up
 //POST /questions/:qID/answers/aID/vote-down
 //Vote for  a specific answer
-router.put("/question/answer/vote", async (request, response) => {
+router.put("/questions/answer/vote", async (request, response) => {
   try {
     const { qID, aID, vote } = request.body;
 
-    // Verify valid object ID formats (security)
     if (
       !mongoose.Types.ObjectId.isValid(qID) ||
       !mongoose.Types.ObjectId.isValid(aID)
     ) {
       return response
         .status(400)
-        .json({ message: "Invalid question or answer Id" });
+        .json({ message: "Invalid question or answer ID" });
     }
 
-    const question = await Question.findById(qID).populate("answers");
+    const answer = await Answer.findById(aID);
 
-    if (!question) {
-      return response.status(404).json({ message: "Question Not Found" });
+    if (!answer) {
+      return response.status(404).json({ message: "Answer Not Found" });
     }
 
-    const answerIndex = question.answers.find(
-      (Answer) => Answer._id.toString() === aID
-    );
-
-    if (!answerIndex) {
-      return response.status(404).json({ message: "Answer not found" });
-    }
-
-    // Validate vote: Ensure vote is either "up" or "down"
-    if (vote !== "up" && vote !== "down") {
-      return response
-        .status(400)
-        .json({ message: "Invalid vote type (up or down only)" });
-    }
 
     //Update vote based on type:
     if (vote === "up") {
-      answerIndex.upvotes++;
-    } else {
+      answer.votes++;
+    } else if(vote === "down") {
       // vote === 'down'
-      answerIndex.downvotes++;
+      // answer.votes--;
+      answer.votes = Math.max(answer.votes - 1, 0);
     }
 
-    await answerIndex.save();
-    await question.save(); // Save updated question with modified answer
+    await answer.save(); // Save updated question with modified answer
 
     // Fetch the updated question with populated answers for sorting
-    const updatedQuestion = await Question.findById(qID).populate("answers");
+    const updatedAnswer = await Answer.findById(aID);
+
+    // Fetch the updated question with populated answers for sorting
+    // const updatedQuestion = await Question.findById(qID).populate("answers");
 
     // Sort answers by the sum of upvotes and downvotes in descending order (most voted at the top)
-    updatedQuestion.answers.sort(
-      (a, b) => b.upvotes - b.downvotes - (a.upvotes - a.downvotes)
-    );
+    // updatedQuestion.answers.sort(
+    //   (a, b) => b.upvotes - b.downvotes - (a.upvotes - a.downvotes)
+    // );
 
     response.status(200).json({
       message: `Successfully voted ${vote} on the answer`,
-      question: updatedQuestion,
+      answer: updatedAnswer,
+      // updatedQuestion: updatedQuestion.answers,
     });
   } catch (err) {
     return response
@@ -522,7 +511,7 @@ router.put("/question/vote", async (request, response) => {
       question.votes++;
     } else {
       // vote === 'down'
-      question.votes--;
+      // question.votes--;
       question.votes = Math.max(question.votes - 1, 0);
     }
 
