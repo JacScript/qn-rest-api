@@ -14,7 +14,9 @@ const schema = new Schema(
 
     tags: [
       {
-        type: String,
+        type: Schema.Types.ObjectId,
+        ref: "Tags",
+        required: true,
       },
     ],
     votes: {

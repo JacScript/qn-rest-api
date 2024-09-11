@@ -24,7 +24,11 @@ const protect = require("./middleware/authMiddleware.js");
 // Route to get all questions (with populated answers)
 router.get("/questions", async (request, response) => {
   try {
-    const questions = await Question.find().populate("answers");
+    const questions = await Question.find()
+    .populate('user', 'username')  // Populate the user field to get the username
+    .populate('tags', 'name');  // Populate the tags field to get the tag name
+  // .populate('answers')  // Populate the answers field
+
     questions.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)); // Sort by creation time (descending)
 
     response.json(questions);
@@ -39,12 +43,53 @@ router.get("/questions", async (request, response) => {
 //Route for creating question
 router.post("/question", async (request, response, next) => {
   try {
-    // const token = request.cookies;
-    const { title, questionText, tags , user} = request.body;
+    const { title, questionText, tags, user } = request.body;
 
-    //get user id
-    // const userId = User._id
-    const newQuestion = new Question({ title, questionText, tags, user});
+    // Ensure 'tags' is an array, even if it's a single string
+    // const tagsArray = Array.isArray(tags) ? tags : [tags];
+
+    let tagsArray = [];
+
+    if (typeof tags === "string") {
+      // If tags are entered as a comma-separated string, split them and filter out empty values
+      tagsArray = tags
+        .split(",")
+        .map(tag => tag.trim())
+        .filter(tag => tag !== "");
+    } else if (Array.isArray(tags)) {
+      // If tags are an array, ensure they are split properly and filter out empty values
+      tagsArray = tags
+        .flatMap(tag => tag.split(",").map(t => t.trim()))
+        .filter(tag => tag !== "");
+    } else {
+      return response.status(400).json({ message: "Invalid tags format." });
+    }
+
+    // Ensure each tag is either found or created
+    const tagIds = await Promise.all(
+      tagsArray.map(async (tagName) => {
+        // Check if tag already exists
+        let existingTag = await Tags.findOne({ name: tagName });
+
+        if (!existingTag) {
+          // If tag doesn't exist, create a new one
+          const newTag = new Tags({ name: tagName });
+          await newTag.save();
+          return newTag._id;
+        }
+
+        return existingTag._id;
+      })
+    );
+
+    // Create the new question with the tag ObjectIds
+    const newQuestion = new Question({
+      title,
+      questionText,
+      tags: tagIds, // Store tag ObjectIds
+      user,
+    });
+
     await newQuestion.save();
 
     // Sort logic: Replace this with your actual sorting criteria
@@ -52,16 +97,18 @@ router.post("/question", async (request, response, next) => {
     questions.push(newQuestion); // Add new question to the array
     questions.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)); // Sort by creation time (descending)
 
-      // Save all questions (including the new one)
+    // Save all questions (including the new one)
     await Promise.all(questions.map((question) => question.save()));
+
     response.status(201).json({
       message: "Question created and sorted successfully",
-      question: newQuestion      
+      question: newQuestion,
     });
   } catch (err) {
-    response
-      .status(500)
-      .json({ message: "Error creating question", error: err.message });
+    response.status(500).json({
+      message: "Error creating question",
+      error: err.message,
+    });
   }
 });
 
@@ -75,7 +122,9 @@ router.get("/question/:id", async (request, response) => {
       return response.status(400).json({ message: "Invalid question ID" });
     }
 
-    const question = await Question.findById(id).populate('user', 'email');
+    const question = await Question.findById(id)
+  .populate('user', 'email') // Populate the user email
+  .populate('tags', 'name');  // Populate the tags with only the 'name' field
    
 
     if (!question) {
@@ -661,6 +710,52 @@ router.put(
     }
   })
 );
+
+// @desc Update user profile to follow a tag
+// route /tag/follow
+router.post("/tag/follow", asyncHandler(async (request, response) => {
+  try {
+    const { tagId, userId } = request.body;
+
+    // 1. Validate request body:
+    if (!tagId || !userId) {
+      return response.status(400).json({ message: "Missing required fields (tagId and userId)" });
+    }
+
+    // 2. Retrieve user document and tag document (optional):
+    const [user, tag] = await Promise.all([User.findById(userId), Tags.findById(tagId)]);
+
+    if (!user) {
+      return response.status(404).json({ message: "User not found" });
+    }
+
+    // 3. Handle duplicate follows (optional):
+    // if (user.Tags.includes(tagId)) {
+    //   return response.status(200).json({ message: "User already follows this tag" });
+    // }
+
+    // 4. Update user's tags array:
+    // user.tags.push(tagId);
+    // await user.save();
+
+    // 5. Update tag's followers array (optional):
+    if (tag) {
+      tag.followers.push(userId);
+      await tag.save();
+    } else {
+      console.warn(`Tag with ID ${tagId} not found, but user follow updated.`);
+    }
+
+    // 6. Send success response:
+    response.status(200).json({ message: "Tag followed successfully" });
+  } catch (error) {
+    console.error(error); // Log the error for debugging
+    response.status(500).json({ message: "Error following tag" });
+  }
+}));
+
+
+
 
 // router.post("/auth/forgotPassword", async (request, response) => {
 //   const { email } = request.body;

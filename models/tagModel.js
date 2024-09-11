@@ -7,10 +7,17 @@ const schema = new Schema(
       // required: true,
       unique: true,
     },
+    followers: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
   },
+
   { timestamps: true }
 );
 
-const Tag = model("Tag", schema);
+const Tag = model("Tags", schema);
 
 module.exports = Tag;
