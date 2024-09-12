@@ -713,46 +713,117 @@ router.put(
 
 // @desc Update user profile to follow a tag
 // route /tag/follow
-router.post("/tag/follow", asyncHandler(async (request, response) => {
-  try {
-    const { tagId, userId } = request.body;
+router.post(
+  "/tag/follow",
+  asyncHandler(async (request, response, next) => {
+    try {
+      const { name, userId } = request.body;
 
-    // 1. Validate request body:
-    if (!tagId || !userId) {
-      return response.status(400).json({ message: "Missing required fields (tagId and userId)" });
+      // 1. Validate userId format:
+      if (!mongoose.Types.ObjectId.isValid(userId)) {
+        return response.status(400).json({ message: "Invalid userId" });
+      }
+
+      // 2. Retrieve user document:
+      const user = await User.findById(userId);
+      if (!user) {
+        return response.status(404).json({ message: "User not found" });
+      }
+      // const tag = await Tags.findOne({name});
+
+
+
+      // 3. Retrieve tag document based on tagname (case-insensitive search):
+      const tag = await Tags.findOne({ name: { $regex: new RegExp(`^${name}$`, 'i') } });
+      if (!tag) {
+        console.log("Tag not found:", name); // Log when the tag is not found
+        return response.status(404).json({ message: "Tag Not Found" });
+      }
+
+      // 4. Check if the user is already following the tag:
+      if (!tag.followers.includes(userId)) {
+        tag.followers.push(userId);
+        await tag.save(); // Save the tag with the updated followers array
+        return response.status(200).json({ message: "Tag followed successfully" });
+      } else {
+        return response.status(200).json({ message: "You already follow this tag" });
+      }
+    } catch (error) {
+      console.error("Error following tag:", error);
+      return response.status(500).json({ message: "Error following tag" });
     }
+  })
+);
 
-    // 2. Retrieve user document and tag document (optional):
-    const [user, tag] = await Promise.all([User.findById(userId), Tags.findById(tagId)]);
+router.delete(
+  "/tag/unfollow",
+  asyncHandler(async (request, response, next) => {
+    try {
+      const { name, userId } = request.body;
 
-    if (!user) {
-      return response.status(404).json({ message: "User not found" });
+      // 1. Validate userId format:
+      if (!mongoose.Types.ObjectId.isValid(userId)) {
+        return response.status(400).json({ message: "Invalid userId" });
+      }
+
+      // 2. Retrieve user document:
+      const user = await User.findById(userId);
+      if (!user) {
+        return response.status(404).json({ message: "User not found" });
+      }
+
+      // 3. Retrieve tag document based on tagname (case-insensitive search):
+      const tag = await Tags.findOne({ name: { $regex: new RegExp(`^${name}$`, 'i') } });
+      if (!tag) {
+        console.log("Tag not found:", name); // Log when the tag is not found
+        return response.status(404).json({ message: "Tag Not Found" });
+      }
+
+      // 4. Check if the user is following the tag:
+      const followerIndex = tag.followers.indexOf(userId);
+      if (followerIndex === -1) {
+        return response.status(400).json({ message: "User is not following this tag" });
+      }
+
+      // 5. Remove user from followers array:
+      tag.followers.splice(followerIndex, 1); // Remove the user from followers
+      await tag.save(); // Save the tag with the updated followers array
+
+      return response.status(200).json({ message: "Successfully unfollowed the tag" });
+    } catch (error) {
+      console.error("Error unfollowing tag:", error);
+      return response.status(500).json({ message: "Error unfollowing tag" });
     }
+  })
+);
 
-    // 3. Handle duplicate follows (optional):
-    // if (user.Tags.includes(tagId)) {
-    //   return response.status(200).json({ message: "User already follows this tag" });
-    // }
 
-    // 4. Update user's tags array:
-    // user.tags.push(tagId);
-    // await user.save();
+router.get(
+  "/questions/tag/:tagname",
+  asyncHandler(async (request, response) => {
+    try {
+      const { tagname } = request.params;
 
-    // 5. Update tag's followers array (optional):
-    if (tag) {
-      tag.followers.push(userId);
-      await tag.save();
-    } else {
-      console.warn(`Tag with ID ${tagId} not found, but user follow updated.`);
+      // Find the tag by name (case-insensitive)
+      const tag = await Tags.findOne({ name: { $regex: new RegExp(`^${tagname}$`, 'i') } });
+
+      if (!tag) {
+        return response.status(404).json({ message: "Tag not found" });
+      }
+
+      // Fetch questions associated with this tag
+      const questions = await Question.find({ tags: tag._id }).populate("tags").populate("user", "username"); // Assuming `tags` is an array of tag IDs in the Question model
+
+      // Return questions
+      return response.status(200).json({ questions });
+    } catch (error) {
+      console.error("Error fetching questions by tag:", error);
+      return res.status(500).json({ message: "Error fetching questions by tag" });
     }
+  })
+);
 
-    // 6. Send success response:
-    response.status(200).json({ message: "Tag followed successfully" });
-  } catch (error) {
-    console.error(error); // Log the error for debugging
-    response.status(500).json({ message: "Error following tag" });
-  }
-}));
+
 
 
 
