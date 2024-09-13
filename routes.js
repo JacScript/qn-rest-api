@@ -4,7 +4,7 @@
 // import dependences
 const express = require("express");
 const router = express.Router();
-const { mongoose } = require("mongoose");
+const { mongoose, Types } = require("mongoose");
 // const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 var nodemailer = require("nodemailer");
@@ -755,6 +755,9 @@ router.post(
   })
 );
 
+
+// @desc Update user profile to unfollow a tag
+// route /tag/unfollow
 router.delete(
   "/tag/unfollow",
   asyncHandler(async (request, response, next) => {
@@ -797,9 +800,10 @@ router.delete(
   })
 );
 
-
+// @desc To get all question for a certain tag
+// route /tag/:tagname
 router.get(
-  "/questions/tag/:tagname",
+  "/tag/:tagname",
   asyncHandler(async (request, response) => {
     try {
       const { tagname } = request.params;
@@ -822,6 +826,35 @@ router.get(
     }
   })
 );
+
+
+// POST /tag/check-following - Check if the user is following a tag
+router.post("/tags/check-following", protect, async (request, response) => {
+  try {
+    const { name, userId } = request.body;
+
+  // 1. Validate userId format:
+  if (!mongoose.Types.ObjectId.isValid(userId)) {
+    return response.status(400).json({ message: "Invalid userId" });
+  }
+
+    // Find the tag by name (case-insensitive)
+    const tag = await Tags.findOne({ name: { $regex: new RegExp(`^${name}$`, 'i') } });
+
+    if (!tag) {
+      return response.status(404).json({ message: "Tag not found" });
+    }
+
+    // Check if the user is in the followers array
+    const isFollowing = tag.followers.includes(userId);
+
+    return response.json({ isFollowing });
+  } catch (error) {
+    console.error("Error checking if user is following tag:", error);
+    return response.status(500).json({ message: "Server error" });
+  }
+});
+
 
 
 
