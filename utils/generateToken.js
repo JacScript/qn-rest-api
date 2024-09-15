@@ -40,7 +40,7 @@ const generateToken = async (response, userId) => {
     });
 
     // Optionally return the token in the response body
-    return await token;
+    return token;
   } catch (error) {
     console.error("Error generating token:", error);
     throw new Error('Error generating token');
