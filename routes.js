@@ -658,7 +658,7 @@ router.post(
         sameSite: "strict", // Helps mitigate CSRF attacks
         maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days in milliseconds
       });
-      
+
       response.status(201).json({
         id: user._id,
         username: user.username,
@@ -852,7 +852,7 @@ router.get(
 
 
 // POST /tag/check-following - Check if the user is following a tag
-router.post("/tags/check-following", protect, async (request, response) => {
+router.post("/tags/check-following", async (request, response) => {
   try {
     const { name, userId } = request.body;
 
