@@ -18,7 +18,7 @@ const Answer = require("./models/ansModel.js");
 const User = require("./models/userModel.js");
 const Tags = require("./models/tagModel.js")
 const Comment = require("./models/commentModel.js")
-const generateToken = require("./utils/generateToken.js");
+// const generateToken = require("./utils/generateToken.js");
 const protect = require("./middleware/authMiddleware.js");
 
 // Route to get all questions (with populated answers)
@@ -597,13 +597,26 @@ router.post(
 
     const user = await User.findOne({ email });
 
+    // await generateToken(user._id);
+
+
     if (user && (await user.matchPassword(password))) {
-     const token = await generateToken(response, user._id);
+      const token = await jwt.sign({ id: user._id }, process.env.KEY, {
+        expiresIn: "30d",
+      });
+
+      await response.cookie("token", token, { 
+        httpOnly: true,        // Cookie is not accessible via JS
+        secure: process.env.NODE_ENV === "production",  // Ensure it is sent over HTTPS in production
+        sameSite: "strict",    // Helps mitigate CSRF attacks
+        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days in milliseconds
+      });
+
       response.status(200).json({
         id: user._id,
         username: user.username,
         email: user.email,
-        token: token
+        // token: token
       });
     } else {
       response.status(401);
@@ -635,7 +648,17 @@ router.post(
     });
 
     if (user) {
-      const token = await generateToken(response, user._id);
+      const token = await jwt.sign({ id: user._id }, process.env.KEY, {
+        expiresIn: "30d",
+      });
+
+      await response.cookie("token", token, {
+        httpOnly: true, // Cookie is not accessible via JS
+        secure: process.env.NODE_ENV === "production", // Ensure it is sent over HTTPS in production
+        sameSite: "strict", // Helps mitigate CSRF attacks
+        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days in milliseconds
+      });
+      
       response.status(201).json({
         id: user._id,
         username: user.username,

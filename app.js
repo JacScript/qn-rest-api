@@ -177,10 +177,12 @@ const routes = require("./routes");
 const dotenv = require("dotenv");
 const mongoose = require("mongoose");
 const cookieParser = require("cookie-parser");
-application.use(cookieParser());
 dotenv.config();
+
+
 application.use(express.json());
 application.use(express.urlencoded({ extended: true }));
+application.use(cookieParser());
 
 
 const cors = require("cors");
@@ -227,11 +229,11 @@ application.use(errorHandler);
 async function connectWithRetry() {
   try {
     //connecting to mongo db database
-    const databaseConnected = await mongoose.connect(process.env.MONGO_URL);
+    const databaseConnected = await mongoose.connect(MONGOURL);
 
     //verifying the database is connected
     if (databaseConnected) {
-      application.listen(process.env.PORT, () => {
+      application.listen(port, () => {
         console.log(
           `database has been connected and server is running on port ${process.env.PORT}`
         );

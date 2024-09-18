@@ -1,21 +1,29 @@
-const jwt = require("jsonwebtoken");
+// const jwt = require("jsonwebtoken");
 
-const generateToken = (response, userId) => {
-  const token = jwt.sign({ userId }, process.env.KEY, {
-    expiresIn: "30d",
-  });
-  response.cookie('jwt', token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV !== "development",
-    sameSite: 'strict',
-    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days in milliseconds
-   // maxAge: 360000,
-  });
+// const generateToken = (id) => {
+//   return jwt.sign({id}, process.env.KEY, {
+//       expiresIn: "30m"
+//   });
+//   response.cookie("token", token, { httpOnly: true, maxAge: 360000 });
 
-  // return token
-};
+// };
 
-module.exports = generateToken;
+// const generateToken = (response, userId) => {
+//   const token = jwt.sign({ userId }, process.env.KEY, {
+//     expiresIn: "30d",
+//   });
+//   response.cookie('jwt', token, {
+//     httpOnly: true,
+//     secure: process.env.NODE_ENV !== "development",
+//     sameSite: 'strict',
+//     maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days in milliseconds
+//    // maxAge: 360000,
+//   });
+
+//   // return token
+// };
+
+// module.exports = generateToken;
 
 
 
