@@ -879,6 +879,41 @@ router.post("/tags/check-following", async (request, response) => {
 });
 
 
+router.get('/questions/by-followed-tags/:userId', async (req, res) => {
+  try {
+    const userId = req.params.userId;
+
+    // Validate userId format
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return response.status(400).json({ message: "Invalid userId" });
+    }
+
+    // Step 1: Find the tags the user follows
+    const followedTags = await Tags.find({ followers: userId }).select('_id');
+
+    if (!followedTags.length) {
+      return response.status(404).json({ message: "No followed tags found" });
+    }
+
+    // Step 2: Extract tag IDs
+    const tagIds = followedTags.map(tag => tag._id);
+
+    // Step 3: Find questions that have those tags
+    const questions = await Question.find({ tags: { $in: tagIds } })
+      .populate('tags', 'name') // Populate tag details if needed
+      .populate('user', 'username') // Populate user details if needed
+      .sort({ createdAt: -1 }) // Sort by latest created questions
+      .exec();
+
+    // Step 4: Return the questions in response
+    response.status(200).json(questions);
+  } catch (err) {
+    console.error(err);
+    response.status(500).json({ message: 'Server Error', error: err.message });
+  }
+});
+
+
 
 
 
