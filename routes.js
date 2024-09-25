@@ -20,6 +20,7 @@ const Tags = require("./models/tagModel.js")
 const Comment = require("./models/commentModel.js")
 // const generateToken = require("./utils/generateToken.js");
 const protect = require("./middleware/authMiddleware.js");
+const generateToken = require("./utils/generateToken.js");
 
 // Route to get all questions (with populated answers)
 router.get("/questions", async (request, response) => {
@@ -597,20 +598,8 @@ router.post(
 
     const user = await User.findOne({ email });
 
-    // await generateToken(user._id);
-
-
     if (user && (await user.matchPassword(password))) {
-      const token = await jwt.sign({ id: user._id }, process.env.KEY, {
-        expiresIn: "30d",
-      });
-
-      await response.cookie("token", token, { 
-        httpOnly: true,        // Cookie is not accessible via JS
-        secure: process.env.NODE_ENV === "production",  // Ensure it is sent over HTTPS in production
-        sameSite: "strict",    // Helps mitigate CSRF attacks
-        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days in milliseconds
-      });
+      await generateToken(response, user._id);
 
       response.status(200).json({
         id: user._id,
@@ -879,9 +868,9 @@ router.post("/tags/check-following", async (request, response) => {
 });
 
 
-router.get('/questions/by-followed-tags/:userId', async (req, res) => {
+router.get('/questions/by-followed-tags/:userId', async (request, response) => {
   try {
-    const userId = req.params.userId;
+    const userId = request.params.userId;
 
     // Validate userId format
     if (!mongoose.Types.ObjectId.isValid(userId)) {
@@ -891,9 +880,9 @@ router.get('/questions/by-followed-tags/:userId', async (req, res) => {
     // Step 1: Find the tags the user follows
     const followedTags = await Tags.find({ followers: userId }).select('_id');
 
-    if (!followedTags.length) {
-      return response.status(404).json({ message: "No followed tags found" });
-    }
+    // if (!followedTags.length) {
+    //   return response.status(404).json({ message: "No followed tags found" });
+    // }
 
     // Step 2: Extract tag IDs
     const tagIds = followedTags.map(tag => tag._id);
