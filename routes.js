@@ -124,7 +124,7 @@ router.get("/question/:id", async (request, response) => {
     }
 
     const question = await Question.findById(id)
-  .populate('user', 'email') // Populate the user email
+  .populate('user', 'username') // Populate the user email
   .populate('tags', 'name');  // Populate the tags with only the 'name' field
    
 
@@ -380,7 +380,7 @@ router.get("/question/:qID/comments", async (request, response) => {
       const question = await Question.findById(qID)
       .populate({
         path: "comments",
-        populate: { path: "user", select: "email" },
+        populate: { path: "user", select: "username" },
       });
 
 
@@ -675,6 +675,36 @@ router.post(
     response.status(200).json({ message: "User logged Out" });
   })
 );
+
+//@desc     getUser Details
+//route     /users/:id
+//@access   Private
+router.get("/users/:id", async (request, response) => {
+  try {
+    const userId = request.params.id;  // Corrected destructuring
+
+    // 1. Validate userId format:
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return response.status(400).json({ message: "Invalid userId" });
+    }
+
+    // 2. Find the user by id
+ const user = await User.findById(userId).select('username email');  // Select only name and email
+
+
+    // 3. Check if user exists
+    if (!user) {
+      return response.status(404).json({ message: "User not found" });
+    }
+
+    // 4. Return the user details
+    response.status(200).json(user);  // Directly return the user object
+
+  } catch (error) {
+    console.error("Error getting user details:", error);
+    return response.status(500).json({ message: "Error getting user data" });
+  }
+});
 
 // @desc    getUser Profile
 //route     /auth/profile
