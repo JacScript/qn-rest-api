@@ -678,33 +678,72 @@ router.post(
 
 //@desc     getUser Details
 //route     /users/:id
-//@access   Private
+//@access   Public
+// @desc     Get user details, their questions, and the total votes
+// @route    GET /users/:id
+// @access   Public
 router.get("/users/:id", async (request, response) => {
   try {
-    const userId = request.params.id;  // Corrected destructuring
+    const userId = request.params.id;
 
     // 1. Validate userId format:
     if (!mongoose.Types.ObjectId.isValid(userId)) {
       return response.status(400).json({ message: "Invalid userId" });
     }
 
-    // 2. Find the user by id
- const user = await User.findById(userId).select('username email');  // Select only name and email
-
+    // 2. Find the user by id, selecting only username and email
+    const user = await User.findById(userId).select('username email');
 
     // 3. Check if user exists
     if (!user) {
       return response.status(404).json({ message: "User not found" });
     }
 
-    // 4. Return the user details
-    response.status(200).json(user);  // Directly return the user object
+    // 4. Find all questions created by the user
+    const userQuestions = await Question.find({ user: userId });
+    // const userQuestions = await Question.find({ user: userId }).populate('tags answers comments');
+
+    // 5. Calculate the total votes from all the questions
+    // const totalVotes = userQuestions.reduce((sum, question) => sum + question.votes, 0);
+
+    // 6. Return the user details, their questions, and the total votes
+    response.status(200).json({
+      user,
+      questions: userQuestions,
+      // totalVotes
+    });
 
   } catch (error) {
     console.error("Error getting user details:", error);
     return response.status(500).json({ message: "Error getting user data" });
   }
 });
+// router.get("/users/:id", async (request, response) => {
+//   try {
+//     const userId = request.params.id;  // Corrected destructuring
+
+//     // 1. Validate userId format:
+//     if (!mongoose.Types.ObjectId.isValid(userId)) {
+//       return response.status(400).json({ message: "Invalid userId" });
+//     }
+
+//     // 2. Find the user by id
+//  const user = await User.findById(userId).select('username email');  // Select only name and email
+
+
+//     // 3. Check if user exists
+//     if (!user) {
+//       return response.status(404).json({ message: "User not found" });
+//     }
+
+//     // 4. Return the user details
+//     response.status(200).json(user);  // Directly return the user object
+
+//   } catch (error) {
+//     console.error("Error getting user details:", error);
+//     return response.status(500).json({ message: "Error getting user data" });
+//   }
+// });
 
 // @desc    getUser Profile
 //route     /auth/profile
