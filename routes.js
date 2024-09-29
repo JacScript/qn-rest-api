@@ -199,7 +199,7 @@ router.get('/questions/:qID/answers', async (request, response) => {
       return response.status(400).json({ message: "Invalid question ID" });
     }
 
-    const question = await Question.findById(qID).populate("answers");
+    const question = await Question.findById(qID).populate("answers").populate("user", 'username');
 
         if (!question) {
             return response.status(404).json({ message: 'Question not found' });
@@ -208,6 +208,7 @@ router.get('/questions/:qID/answers', async (request, response) => {
         // Find all answers related to the specific question
         // const answers = await Answer.findById(qID).populate("answers")
 
+      //  const answer = question;
        const answer = question.answers;
         // Send the answers as a response
         response.status(200).json({answer});
@@ -704,13 +705,13 @@ router.get("/users/:id", async (request, response) => {
     // const userQuestions = await Question.find({ user: userId }).populate('tags answers comments');
 
     // 5. Calculate the total votes from all the questions
-    // const totalVotes = userQuestions.reduce((sum, question) => sum + question.votes, 0);
+    const totalVotes = userQuestions.reduce((sum, question) => sum + question.votes, 0);
 
     // 6. Return the user details, their questions, and the total votes
     response.status(200).json({
       user,
       questions: userQuestions,
-      // totalVotes
+      totalVotes
     });
 
   } catch (error) {
